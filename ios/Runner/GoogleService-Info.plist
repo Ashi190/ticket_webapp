@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyC8A8MDhCIi5tcs47tZHVU0hZ3xfOKxt84</string>
+	<key>GCM_SENDER_ID</key>
+	<string>103611207453</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.ticketUiTest.RunnerTests</string>
+	<key>PROJECT_ID</key>
+	<string>ticket-5ced3</string>
+	<key>STORAGE_BUCKET</key>
+	<string>ticket-5ced3.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:103611207453:ios:d229a134871c9ae9115bf4</string>
+</dict>
+</plist>
