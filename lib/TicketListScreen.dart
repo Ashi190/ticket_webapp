@@ -13,7 +13,8 @@ class _TicketListScreenState extends State<TicketListScreen> {
   String userRole = '';
   String userDepartment = '';
   String userEmail = ''; // To store current user's email
-  Timer? _timer;
+  List<Timer?> _timers = []; // Store timers for each ticket
+  Map<String, int> remainingTimes = {}; // Store remaining times for each ticket
 
   @override
   void initState() {
@@ -23,7 +24,10 @@ class _TicketListScreenState extends State<TicketListScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel(); // Cancel the timer when the widget is disposed
+    // Cancel all timers when the widget is disposed
+    for (Timer? timer in _timers) {
+      timer?.cancel();
+    }
     super.dispose();
   }
 
@@ -32,7 +36,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.email).get();
-        if (userDoc.exists) {
+        if (userDoc.exists && mounted) { // Ensure mounted before setState
           setState(() {
             userRole = userDoc.data()?['role'] ?? '';
             userDepartment = userDoc.data()?['department'] ?? '';
@@ -89,27 +93,30 @@ class _TicketListScreenState extends State<TicketListScreen> {
           for (var ticketDoc in tickets) {
             final ticket = ticketDoc.data() as Map<String, dynamic>;
 
-            // **Check if timeline_start and timeline_duration exist and are not null**
             if (ticket['timeline_start'] != null && ticket['timeline_duration'] != null) {
-              // **Convert the timeline_start to a DateTime using .toDate()**
               final Timestamp timelineStartTimestamp = ticket['timeline_start'];
               final DateTime timelineStart = timelineStartTimestamp.toDate();
-              final int timelineDuration = ticket['timeline_duration']; // Total time in seconds
+              final int timelineDuration = ticket['timeline_duration'];
 
-              // **Calculate the remaining time dynamically**
               final int remainingTime = _getUpdatedRemainingTime(timelineStart, timelineDuration);
 
-              // Add the ticket data and remaining time to the list
+              // Add to the list
               ticketsWithRemainingTime.add({
                 'ticket': ticket,
                 'ticketId': ticketDoc.id,
                 'remainingTime': remainingTime,
                 'timelineDuration': timelineDuration,
               });
+
+              // Store the remaining time in the state and start the timer
+              if (!remainingTimes.containsKey(ticketDoc.id)) {
+                remainingTimes[ticketDoc.id] = remainingTime;
+                _startTimer(ticketDoc.id, remainingTime);
+              }
             }
           }
 
-          // Sort tickets based on remaining time (ascending order)
+          // Sort by remaining time
           ticketsWithRemainingTime.sort((a, b) => a['remainingTime'].compareTo(b['remainingTime']));
 
           return ListView.builder(
@@ -117,60 +124,43 @@ class _TicketListScreenState extends State<TicketListScreen> {
             itemBuilder: (context, index) {
               final ticketData = ticketsWithRemainingTime[index];
               final ticket = ticketData['ticket'];
+              final int remainingTime = remainingTimes[ticketData['ticketId']] ?? ticketData['remainingTime'];
               final int timelineDuration = ticketData['timelineDuration'];
 
-              return StatefulBuilder(
-                builder: (context, setState) {
-                  int remainingTime = ticketData['remainingTime'];
-
-                  // Start a periodic timer to update the remaining time
-                  Timer.periodic(Duration(seconds: 1), (timer) {
-                    setState(() {
-                      if (remainingTime > 0) {
-                        remainingTime--; // Decrement the remaining time every second
-                      } else {
-                        timer.cancel(); // Stop the timer when the time reaches zero
-                      }
-                    });
-                  });
-
-                  return Card(
-                    elevation: 2,
-                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    child: ListTile(
-                      leading: Icon(Icons.receipt, color: Colors.teal),
-                      title: Text(ticket['subject'], style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Department: ${ticket['department']}'),
-                          Text('Ticket ID: ${ticketData['ticketId']}'),
-                          _buildTimelineStatus(remainingTime, timelineDuration),
-                        ],
-                      ),
-                      trailing: Container(
-                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: ticket['status'] == 'Open' ? Colors.green : Colors.red,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          ticket['status'],
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TicketDetailScreen(ticketId: ticketData['ticketId']),
-                          ),
-                        );
-                      },
+              return Card(
+                elevation: 2,
+                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: ListTile(
+                  leading: Icon(Icons.receipt, color: Colors.teal),
+                  title: Text(ticket['subject'], style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Department: ${ticket['department']}'),
+                      Text('Ticket ID: ${ticketData['ticketId']}'),
+                      _buildTimelineStatus(remainingTime, timelineDuration),
+                    ],
+                  ),
+                  trailing: Container(
+                    padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: ticket['status'] == 'Open' ? Colors.green : Colors.red,
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  );
-                },
+                    child: Text(
+                      ticket['status'],
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TicketDetailScreen(ticketId: ticketData['ticketId']),
+                      ),
+                    );
+                  },
+                ),
               );
             },
           );
@@ -179,22 +169,23 @@ class _TicketListScreenState extends State<TicketListScreen> {
     );
   }
 
-
-
-
-
-
-  // Start a Timer to update the remaining time every second
+  // Start a Timer to update the remaining time
   void _startTimer(String ticketId, int remainingTime) {
-    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (remainingTime > 0) {
+    Timer? timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (mounted) {
         setState(() {
-          remainingTime--;
+          if (remainingTimes[ticketId]! > 0) {
+            remainingTimes[ticketId] = remainingTimes[ticketId]! - 1;
+          } else {
+            timer.cancel();
+          }
         });
       } else {
         timer.cancel();
       }
     });
+
+    _timers.add(timer); // Store the timer for cleanup
   }
 
   // Function to calculate the remaining time by subtracting the elapsed time from the total timeline duration
@@ -204,16 +195,14 @@ class _TicketListScreenState extends State<TicketListScreen> {
     return (timelineDuration - elapsedTime).clamp(0, timelineDuration); // Prevent negative values
   }
 
-  // Widget to build the timeline status UI (display countdown)
+  // Widget to build the timeline status UI
   Widget _buildTimelineStatus(int remainingTime, int totalTime) {
-    // Calculate the percentage of remaining time
     double timeFraction = remainingTime / totalTime;
 
-// If time is up (remainingTime is zero or negative), show alert icon
     if (remainingTime <= 0) {
       return Row(
         children: [
-          Icon(Icons.warning, color: Colors.red), // Alert icon
+          Icon(Icons.warning, color: Colors.red),
           SizedBox(width: 8),
           Text(
             'Time is up!',
@@ -223,15 +212,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
       );
     }
 
-    Color timelineColor;
-
-    if (timeFraction > 0.5) {
-      timelineColor = Colors.green; // More than 50% of the time left
-    } else if (timeFraction > 0.25) {
-      timelineColor = Colors.yellow; // Between 25% and 50% of the time left
-    } else {
-      timelineColor = Colors.red; // Less than 25% of the time left
-    }
+    Color timelineColor = _getTimelineColor(remainingTime, totalTime);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,8 +223,8 @@ class _TicketListScreenState extends State<TicketListScreen> {
         ),
         LinearProgressIndicator(
           value: remainingTime.isNegative
-              ? 0.0 // If time has passed, show an empty bar
-              : (remainingTime / totalTime).clamp(0.0, 1.0), // Progress bar based on the remaining time
+              ? 0.0
+              : (remainingTime / totalTime).clamp(0.0, 1.0),
           color: timelineColor,
           backgroundColor: Colors.grey[200],
         ),
@@ -251,4 +232,15 @@ class _TicketListScreenState extends State<TicketListScreen> {
     );
   }
 
+  // Function to get color based on the remaining time
+  Color _getTimelineColor(int remainingTime, int totalTime) {
+    double timeFraction = remainingTime / totalTime;
+    if (timeFraction > 0.5) {
+      return Colors.green; // More than 50% of the time left
+    } else if (timeFraction > 0.25) {
+      return Colors.yellow; // Between 25% and 50% of the time left
+    } else {
+      return Colors.red; // Less than 25% of the time left
+    }
+  }
 }

@@ -39,6 +39,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _replyController = TextEditingController();
   late AnimationController _animationController;
+  final TextEditingController _questionnaireController = TextEditingController();
+  final TextEditingController _followUpQuestionController = TextEditingController();
+
 
   String? _selectedUser;
   late List<Map<String, dynamic>> _users = []; // Store both name and email
@@ -56,10 +59,14 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
 
   @override
   void dispose() {
+    // Dispose the controllers when not in use to prevent memory leaks
+    _questionnaireController.dispose();
+    _followUpQuestionController.dispose();
     _nameController.dispose();
     _replyController.dispose();
     super.dispose();
   }
+
 
   Future<void> _fetchTicketData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -167,7 +174,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   Future<void> _sendMessage() async {
     if (_nameController.text.isNotEmpty && _replyController.text.isNotEmpty) {
       // Upload the image first and get the download URL (if any)
-
       String? downloadUrl = await _uploadImage();
       await FirebaseFirestore.instance
           .collection('tickets')
@@ -178,10 +184,18 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
         'message': _replyController.text,
         'timestamp': FieldValue.serverTimestamp(),
         'imageUrl': downloadUrl ?? '', // This will hold the URL of the uploaded image.
+        'questionnaire': _questionnaireController.text.isNotEmpty
+            ? _questionnaireController.text
+            : null, // Add questionnaire if provided
+        'follow_up_question': _followUpQuestionController.text.isNotEmpty
+            ? _followUpQuestionController.text
+            : null, // Add follow-up question if provided
       });
 
       _nameController.clear();
       _replyController.clear();
+      _questionnaireController.clear(); // Clear questionnaire after sending
+      _followUpQuestionController.clear(); // Clear follow-up question after sending
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter both name and reply')),
@@ -566,7 +580,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   }
 
   Widget _buildMessageTile(Map<String, dynamic> message) {
-    // Replace 'userId' with the actual logic to get the current user's ID
     bool isSentByUser = message['sender'] == 'email'; // Replace 'userId' with your actual logged-in user ID.
 
     return Padding(
@@ -618,25 +631,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                   ),
                   SizedBox(height: 6),
 
-                  // Cc section
-                  if (message.containsKey('cc') && message['cc'].isNotEmpty)
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: 'cc: ',
-                            style: TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black),
-                          ),
-                          TextSpan(
-                            text: message['cc'], // Placeholder for cc names or user mentions
-                            style: TextStyle(color: Colors.teal),
-                          ),
-                        ],
-                      ),
-                    ),
-                  SizedBox(height: 6),
-
                   // Main message content
                   Text(
                     message['message'] ?? 'No message',
@@ -647,20 +641,29 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                   ),
                   SizedBox(height: 6),
 
-                  // Shipment numbers if any
-                  if (message.containsKey('shipmentIds') && message['shipmentIds'].isNotEmpty)
-                    Container(
-                      padding: EdgeInsets.symmetric(vertical: 6.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: message['shipmentIds'].map<Widget>((id) {
-                          return Text(
-                            "#$id",
-                            style: TextStyle(fontSize: 14, color: Colors.blueGrey),
-                          );
-                        }).toList(),
+                  // Display questionnaire if it exists
+                  if (message.containsKey('questionnaire') && message['questionnaire'] != null)
+                    Text(
+                      'Questionnaire: ${message['questionnaire']}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.blue.shade600,
                       ),
                     ),
+                  SizedBox(height: 6),
+
+                  // Display follow-up question if it exists
+                  if (message.containsKey('follow_up_question') && message['follow_up_question'] != null)
+                    Text(
+                      'Follow-up Question: ${message['follow_up_question']}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.orange.shade600,
+                      ),
+                    ),
+                  SizedBox(height: 6),
 
                   // Display image if imageUrl is present
                   if (message.containsKey('imageUrl') && message['imageUrl'] != '')
@@ -700,92 +703,93 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   }
 
 
+
   Widget _buildReplySection() {
     return Card(
-      elevation: 6.0, // Slightly increased elevation for a more pronounced effect
+      elevation: 6.0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16), // More pronounced roundness
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0), // Increased padding around the card
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Reply to Ticket',
               style: TextStyle(
-                fontSize: 24, // Increased font size for better visibility
+                fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Colors.teal,
               ),
             ),
-            SizedBox(height: 16), // More spacing between title and fields
+            SizedBox(height: 16),
             TextField(
               controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Your Name',
-                labelStyle: TextStyle(color: Colors.teal), // Change label color
+                labelStyle: TextStyle(color: Colors.teal),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.teal), // Teal border
+                  borderSide: BorderSide(color: Colors.teal),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.teal, width: 2), // Thicker teal border on focus
+                  borderSide: BorderSide(color: Colors.teal, width: 2),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey, width: 1), // Grey border
+                  borderSide: BorderSide(color: Colors.grey, width: 1),
                 ),
               ),
             ),
             SizedBox(height: 12),
             TextField(
               controller: _replyController,
-              maxLines: 4, // Allow more lines for reply
+              maxLines: 4,
               decoration: InputDecoration(
                 labelText: 'Your Reply',
-                labelStyle: TextStyle(color: Colors.teal), // Change label color
+                labelStyle: TextStyle(color: Colors.teal),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.teal), // Teal border
+                  borderSide: BorderSide(color: Colors.teal),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.teal, width: 2), // Thicker teal border on focus
+                  borderSide: BorderSide(color: Colors.teal, width: 2),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey, width: 1), // Grey border
+                  borderSide: BorderSide(color: Colors.grey, width: 1),
                 ),
               ),
             ),
-            SizedBox(height: 20), // More space before buttons
+            SizedBox(height: 20),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // Space out the buttons
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ElevatedButton(
                   onPressed: () async {
-                    // First, send the message
+                    // This button now only sends the reply and does not interact with the image functionality
                     await _sendMessage(); // Call your send message logic here
                   },
                   child: Text('Send Reply'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal, // Changed to teal
-                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32), // Increased button padding
-                    textStyle: TextStyle(fontSize: 18), // Increased font size for button text
+                    backgroundColor: Colors.teal,
+                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+                    textStyle: TextStyle(fontSize: 18),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12), // Rounded button corners
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
                 Tooltip(
-                  message: 'Upload Photo', // Tooltip for the icon button
+                  message: 'Upload Photo',
                   child: IconButton(
                     icon: Icon(Icons.photo),
                     color: Colors.teal,
                     onPressed: () async {
-                      // Pick the image from gallery
+                      // Only trigger the image picking when this button is clicked
                       await _pickImage(); // Call to pick image from gallery
 
                       // After the image is picked, upload it
@@ -802,6 +806,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       ),
     );
   }
+
 
   Future<void> _reassignTicket() async {
     if (_selectedUser == null) {
