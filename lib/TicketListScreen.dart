@@ -106,6 +106,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
                 'ticketId': ticketDoc.id,
                 'remainingTime': remainingTime,
                 'timelineDuration': timelineDuration,
+                'color': _getTimelineColor(remainingTime, timelineDuration), // Add color to sorting logic
               });
 
               // Store the remaining time in the state and start the timer
@@ -116,8 +117,17 @@ class _TicketListScreenState extends State<TicketListScreen> {
             }
           }
 
-          // Sort by remaining time
-          ticketsWithRemainingTime.sort((a, b) => a['remainingTime'].compareTo(b['remainingTime']));
+          // Sort by color and then by remaining time (ascending)
+          ticketsWithRemainingTime.sort((a, b) {
+            int colorWeightA = _getColorWeight(a['color']);
+            int colorWeightB = _getColorWeight(b['color']);
+
+            if (colorWeightA != colorWeightB) {
+              return colorWeightA.compareTo(colorWeightB); // Sort by color
+            } else {
+              return a['remainingTime'].compareTo(b['remainingTime']); // Sort by remaining time within the same color group
+            }
+          });
 
           return ListView.builder(
             itemCount: ticketsWithRemainingTime.length,
@@ -126,6 +136,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
               final ticket = ticketData['ticket'];
               final int remainingTime = remainingTimes[ticketData['ticketId']] ?? ticketData['remainingTime'];
               final int timelineDuration = ticketData['timelineDuration'];
+              final Color color = ticketData['color'];
 
               return Card(
                 elevation: 2,
@@ -243,5 +254,15 @@ class _TicketListScreenState extends State<TicketListScreen> {
       return Colors.red; // Less than 25% of the time left
     }
   }
-}
 
+  // Helper function to get a weight based on color
+  int _getColorWeight(Color color) {
+    if (color == Colors.red) {
+      return 1;
+    } else if (color == Colors.yellow) {
+      return 2;
+    } else {
+      return 3; // Green
+    }
+  }
+}

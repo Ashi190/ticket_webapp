@@ -111,6 +111,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
           _currentStatus = _ticketData['status'];
           _isLoading = false;
         });
+
+        _initializeUserList();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('You are not authorized to view this ticket.')),
@@ -172,9 +174,18 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   }
 
   Future<void> _sendMessage() async {
+    String questionnaireText = _questionnaireController.text;
+    String followUpQuestionText = _followUpQuestionController.text;
+
     if (_nameController.text.isNotEmpty && _replyController.text.isNotEmpty) {
-      // Upload the image first and get the download URL (if any)
-      String? downloadUrl = await _uploadImage();
+      String? downloadUrl; // This will store the image URL if an image is uploaded
+
+      // Only upload the image if one has been selected (_image is not null)
+      if (_image != null) {
+        downloadUrl = await _uploadImage(); // Upload image if available
+      }
+
+      // Send the reply message along with the image URL (if any)
       await FirebaseFirestore.instance
           .collection('tickets')
           .doc(widget.ticketId)
@@ -183,24 +194,36 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
         'sender': _nameController.text,
         'message': _replyController.text,
         'timestamp': FieldValue.serverTimestamp(),
-        'imageUrl': downloadUrl ?? '', // This will hold the URL of the uploaded image.
-        'questionnaire': _questionnaireController.text.isNotEmpty
-            ? _questionnaireController.text
-            : null, // Add questionnaire if provided
-        'follow_up_question': _followUpQuestionController.text.isNotEmpty
-            ? _followUpQuestionController.text
-            : null, // Add follow-up question if provided
+        'imageUrl': downloadUrl ?? '', // If no image, store an empty string
+        'questionnaire': questionnaireText.isNotEmpty ? questionnaireText : 'No questionnaire provided',
+        'follow_up_question': followUpQuestionText.isNotEmpty ? followUpQuestionText : 'No follow-up question provided',
       });
 
+      // Clear input fields after sending the message
       _nameController.clear();
       _replyController.clear();
       _questionnaireController.clear(); // Clear questionnaire after sending
       _followUpQuestionController.clear(); // Clear follow-up question after sending
+      _image = null; // Reset image after message is sent
     } else {
+      // Show an error if either name or reply is missing
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please enter both name and reply')),
       );
     }
+  }
+
+  Future<void> testFirestoreWrite() async {
+    await FirebaseFirestore.instance
+        .collection('tickets')
+        .doc(widget.ticketId)
+        .collection('messages')
+        .add({
+      'test_field': 'This is a test message',
+      'questionnaire': 'Test questionnaire',
+      'follow_up_question': 'Test follow-up question',
+    });
+    print('Test write successful');
   }
 
   Future<void> _initializeUserList() async {
@@ -243,7 +266,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     }
   }
 
-
   String _formatTimestamp(Timestamp? timestamp) {
     if (timestamp != null) {
       DateTime dateTime = timestamp.toDate();
@@ -284,10 +306,16 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   }
 
   Future<void> _pickImage() async {
+    // Check if an image is already selected
+    if (_image != null) {
+      print("Image already selected, skipping picker.");
+      return;
+    }
+
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
-        allowMultiple: false, // If you only want to allow single image selection
+        allowMultiple: false, // Only allow single image selection
       );
 
       if (result != null && result.files.isNotEmpty) {
@@ -313,55 +341,30 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
 
   Future<String?> _uploadImage() async {
     try {
-      // Create an HTML file input element
-      final html.FileUploadInputElement uploadInput = html.FileUploadInputElement();
-      uploadInput.accept = 'image/*'; // Accept only image files
-      uploadInput.click(); // Open the file picker dialog
+      // Ensure there's an image to upload
+      if (_image == null) {
+        print("No image selected for upload.");
+        return null;
+      }
 
-      // Wait for the file to be selected
-      final Completer<String?> completer = Completer();
+      // Create a reference to the Firebase Storage
+      final storageRef = FirebaseStorage.instance.ref().child('images/${_image!.name}');
 
-      uploadInput.onChange.listen((e) async {
-        final files = uploadInput.files;
-        if (files!.isEmpty) {
-          completer.complete(null); // No file selected
-          return;
-        }
+      // Upload the image bytes
+      final Uint8List? imageBytes = _image!.bytes;
+      if (imageBytes != null) {
+        await storageRef.putData(imageBytes);
 
-        // Get the first file
-        final file = files[0];
-        final _fileName = file.name;
-
-        // Create a reference to the Firebase Storage
-        final storageRef = FirebaseStorage.instance.ref().child('images/$_fileName');
-
-        // Read the file as a Blob
-        final reader = html.FileReader();
-        reader.readAsArrayBuffer(file); // Read as ArrayBuffer
-
-        reader.onLoadEnd.listen((e) async {
-          try {
-            // Once the file is read, upload it
-            final blob = reader.result as Uint8List; // Get the file data
-            await storageRef.putData(blob); // Upload the file
-
-            // Get the download URL
-            final downloadUrl = await storageRef.getDownloadURL();
-
-            // Return the download URL
-            print('Image uploaded: $downloadUrl');
-            completer.complete(downloadUrl); // Complete with the download URL
-          } catch (uploadError) {
-            print('Error uploading image: $uploadError');
-            completer.completeError(uploadError); // Complete with error
-          }
-        });
-      });
-
-      // Await the completer to get the download URL
-      return await completer.future;
+        // Get the download URL
+        final downloadUrl = await storageRef.getDownloadURL();
+        print('Image uploaded: $downloadUrl');
+        return downloadUrl;
+      } else {
+        print('Image bytes not found.');
+        return null;
+      }
     } catch (error) {
-      print('Error selecting file: $error');
+      print('Error uploading image: $error');
       return null; // Return null on error
     }
   }
@@ -702,8 +705,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     );
   }
 
-
-
   Widget _buildReplySection() {
     return Card(
       elevation: 6.0,
@@ -791,11 +792,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                     onPressed: () async {
                       // Only trigger the image picking when this button is clicked
                       await _pickImage(); // Call to pick image from gallery
-
-                      // After the image is picked, upload it
-                      if (_pickImage != null) {
-                        await _uploadImage(); // Call to upload the image
-                      }
                     },
                   ),
                 ),
@@ -807,7 +803,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     );
   }
 
-
   Future<void> _reassignTicket() async {
     if (_selectedUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -815,7 +810,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       );
       return;
     }
-
     try {
       await FirebaseFirestore.instance
           .collection('tickets')
@@ -907,8 +901,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     );
   }
 
-
-
   Widget _buildBottomAppBar() {
     return BottomAppBar(
       elevation: 10,
@@ -974,8 +966,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       ),
     );
   }
-
-
 
   void _openSupport() {
     showDialog(

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart'; // For the graph
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firebase Firestore for ticket data
-import 'package:intl/intl.dart';
 import 'TicketStatusScreen.dart'; // Import the new screen
 
 void main() {
@@ -24,71 +22,75 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Define the available filter options
-  final List<String> _dateFilterOptions = [
-    'Last 30 days',
-    'Last 10 days',
-    'Last Year',
-    'Yesterday',
-    'Today',
-    'Last 15 days',
-  ];
-
-  // Variable to hold the selected filter option
-  String _selectedFilter = 'Last 30 days';
-
   // List of possible ticket statuses
   final List<String> _ticketStatuses = [
     'Open',
     'Closed',
-    'Assigned',
-    'Unassigned',
+    'Reassigned',
+    'Reassigned to Support',
     'Under Progress',
     'In Progress',
-    'Due',
-    'Overdue'
   ];
+
+  // List of departments based on your provided department codes
+  final List<String> _departments = [
+    'All',
+    'Marketing',
+    'Development',
+    'Sales',
+    'Support',
+    'BA',
+    'Accounts',
+    'Outbound',
+    'Dispatch'
+  ];
+
+  // Store the selected department
+  String _selectedDepartment = 'All';
 
   // Store the ticket counts for each status
   Map<String, int> _ticketCounts = {
     'Open': 0,
     'Closed': 0,
-    'Assigned': 0,
-    'Unassigned': 0,
+    'Reassigned': 0,
+    'Reassigned to Support': 0,
     'Under Progress': 0,
     'In Progress': 0,
-    'Due': 0,
-    'Overdue': 0,
   };
 
   bool _isLoading = true;
 
+
   @override
   void initState() {
     super.initState();
-    _fetchTicketCounts();
+    _fetchTicketCounts(); // Initially fetch all tickets
   }
 
-  // Fetch ticket counts from Firestore for each status
+  // Fetch ticket counts from Firestore for each status based on selected department
   Future<void> _fetchTicketCounts() async {
     setState(() {
       _isLoading = true;
     });
 
-    QuerySnapshot querySnapshot = await FirebaseFirestore.instance.collection('tickets').get();
+    // Firestore query
+    Query query = FirebaseFirestore.instance.collection('tickets');
+
+    // Filter by department if a specific department is selected
+    if (_selectedDepartment != 'All') {
+      query = query.where('department', isEqualTo: _selectedDepartment);
+    }
+
+    QuerySnapshot querySnapshot = await query.get();
 
     Map<String, int> ticketCounts = {
       'Open': 0,
       'Closed': 0,
-      'Assigned': 0,
-      'Unassigned': 0,
+      'Reassigned': 0,
+      'Reassigned to Support': 0,
       'Under Progress': 0,
       'In Progress': 0,
-      'Due': 0,
-      'Overdue': 0,
     };
-
-    List<DateTime> dates = [];
 
     for (var doc in querySnapshot.docs) {
       var data = doc.data() as Map<String, dynamic>;
@@ -96,10 +98,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (ticketCounts.containsKey(status)) {
         ticketCounts[status] = ticketCounts[status]! + 1;
       }
-
-      // Assuming you have a 'timestamp' field in Firestore
-      Timestamp timestamp = data['timestamp'] ?? Timestamp.now();
-      dates.add(timestamp.toDate());
     }
 
     setState(() {
@@ -107,7 +105,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _isLoading = false;
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -119,7 +116,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         backgroundColor: Colors.white54,
         actions: [
-          IconButton(icon: Icon(Icons.more_vert), onPressed: () {}),
+
+          IconButton(
+            icon: Icon(Icons.filter_list),
+            onPressed: () {
+              _showDepartmentFilterDialog(context); // Show department dropdown
+            },
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -127,30 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Dropdown for date filter
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                DropdownButton<String>(
-                  value: _selectedFilter, // Currently selected filter
-                  items: _dateFilterOptions.map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      _selectedFilter = newValue!;
-                    });
-                    _fetchTicketCounts(); // Fetch data for the new range
-                  },
-                ),
-              ],
-            ),
             SizedBox(height: 16),
-
-            // Section 1: Tickets List
             Text(
               "Tickets List",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -190,92 +170,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             SizedBox(height: 30), // Space between ticket list and graph
-
-            // Section 2: Ticket Stats Graph
-            Text(
-              "Tickets Stats",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 20),
-
-            // Show graph or loading spinner
-            _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : _buildTicketLineChart(),
           ],
         ),
       ),
     );
   }
 
-  // Method to build the Line Chart for ticket stats
-  Widget _buildTicketLineChart() {
-    List<FlSpot> spots = [];
-    List<DateTime> dates = [];
-    int index = 0;
-
-    // Simulate dates based on your data (in this case using the _ticketCounts map)
-    _ticketCounts.forEach((status, count) {
-      // Convert to double, ensuring valid count
-      double validCount = count.isNaN ? 0.0 : count.toDouble();
-
-      // Example: Calculate the date for the x-axis
-      DateTime date = DateTime.now().subtract(Duration(days: index * 2)); // You can adjust this based on real data
-      dates.add(date);
-
-      // Adding to spots: the x-axis value is the index (as fl_chart needs numbers), y-axis is the ticket count
-      spots.add(FlSpot(index.toDouble(), validCount));
-
-      index++;
-    });
-
-    return AspectRatio(
-      aspectRatio: 2.0,
-      child: LineChart(
-        LineChartData(
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              colors: [Colors.blue],
-              barWidth: 3,
-              belowBarData: BarAreaData(
-                show: true,
-                colors: [Colors.blue.withOpacity(0.3)],
-              ),
-            ),
-          ],
-          titlesData: FlTitlesData(
-            leftTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              interval: 1,
-              getTextStyles: (context, value) =>
-              const TextStyle(color: Colors.black87, fontSize: 12),
-            ),
-            bottomTitles: SideTitles(
-              showTitles: true,
-              getTitles: (value) {
-                // Use the value as an index to retrieve the corresponding date
-                if (value.toInt() >= 0 && value.toInt() < dates.length) {
-                  DateTime date = dates[value.toInt()];
-                  return DateFormat('MM/dd').format(date); // Format the date as MM/dd
-                }
-                return '';
-              },
-              getTextStyles: (context, value) =>
-              const TextStyle(color: Colors.black87, fontSize: 10),
-            ),
+  // Show a dialog with a dropdown to select the department filter
+  void _showDepartmentFilterDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Filter by Department'),
+          content: DropdownButton<String>(
+            value: _selectedDepartment,
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedDepartment = newValue!;
+              });
+              _fetchTicketCounts(); // Fetch the tickets for the selected department
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            items: _departments.map((String department) {
+              return DropdownMenuItem<String>(
+                value: department,
+                child: Text(department),
+              );
+            }).toList(),
           ),
-          gridData: FlGridData(show: true),
-          borderData: FlBorderData(show: true),
-        ),
-      ),
+          actions: [
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+          ],
+        );
+      },
     );
   }
-
-
-
 }
 
 // TicketCard widget (same as before)
@@ -360,16 +295,12 @@ class TicketCard extends StatelessWidget {
         return Colors.orange;
       case 'Closed':
         return Colors.green;
-      case 'Unassigned':
+      case 'Reassigned to Support':
         return Colors.grey;
       case 'Under Progress':
         return Colors.blue;
-      case 'Assigned':
+      case 'Reassigned':
         return Colors.purple;
-      case 'Due':
-        return Colors.teal;
-      case 'Overdue':
-        return Colors.brown;
       default:
         return Colors.grey;
     }
