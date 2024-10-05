@@ -1,6 +1,12 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Firebase Auth for user info
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   runApp(MyApp());
@@ -27,12 +33,12 @@ class AddTicketScreen extends StatefulWidget {
 }
 
 class _AddTicketScreenState extends State<AddTicketScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
+ // final TextEditingController _emailController = TextEditingController();
+ // final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _agentNameController = TextEditingController(); // For agent name (auto-filled)
-
+  final TextEditingController _agentEmailController = TextEditingController();
   String _selectedDepartment = 'Select Department'; // Default value
   String _selectedSubDepartment = ''; // Sub-department value
   String _selectedQuestionnaire = ''; // Questionnaire value
@@ -43,7 +49,9 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
   String? _questionnaireError; // Error message for questionnaire validation
   String? _followUpQuestionError; // Error message for follow-up question validation
 
-
+  PlatformFile? _selectedImageFile; // Store the selected image
+  String? _uploadedImageUrl; // Store the uploaded image URL
+  PlatformFile? _image;
 
   final List<String> _departments = [
     'Select Department',
@@ -492,6 +500,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
           // Set the agent name from Firestore data
           setState(() {
             _agentNameController.text = userDoc['name'] ?? 'Unknown User';
+            _agentEmailController.text = userDoc['email'] ?? 'Unknown User';
           });
         } else {
           print('No user document found in Firestore.');
@@ -508,11 +517,15 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       final DateTime now = DateTime.now();
       final Duration timelineDuration = _getTimelineDuration(_selectedQuestionnaire);
 
+      // Upload the image if available
+      if (_selectedImageFile != null) {
+        _uploadedImageUrl = await _uploadImage(_selectedImageFile!);
+      }
 
       if (_subjectController.text.isNotEmpty) {
         await FirebaseFirestore.instance.collection('tickets').doc(newTicketId).set({
-          'email': _emailController.text,
-          'phone': _phoneController.text,
+      //    'email': _emailController.text,
+      //    'phone': _phoneController.text,
           'subject': _subjectController.text,
           'description': _descriptionController.text,
           'department': _selectedDepartment,
@@ -520,12 +533,13 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
           'questionnaire': _selectedQuestionnaire,
           'follow_up_question': _selectedFollowUpQuestion,
           'agent_name': _agentNameController.text, // Agent name auto-filled
+          'agent_email': _agentEmailController,
           'status': 'Open',
           'date_created': Timestamp.now(),
           'ticketId': newTicketId,
           'timeline_start': Timestamp.now(), // Timeline start time
           'timeline_duration': timelineDuration.inSeconds, // Timeline in seconds
-
+          'image_url': _uploadedImageUrl ?? '', // Image URL (if uploaded)
         });
 
 
@@ -536,8 +550,8 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
 
         // Reset the form fields
         setState(() {
-          _emailController.clear();
-          _phoneController.clear();
+         // _emailController.clear();
+        //  _phoneController.clear();
           _subjectController.clear();
           _descriptionController.clear();
           _selectedDepartment = 'Select Department';
@@ -548,10 +562,78 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
           _subDepartmentError = null;
           _questionnaireError = null;
           _followUpQuestionError = null;
+          _selectedImageFile = null; // Clear the selected image
+          _uploadedImageUrl = null; // Reset uploaded image URL
         });
       }
     }
   }
+  // Function to pick image using image_picker
+  Future<void> _pickImage() async {
+    // Check if an image is already selected
+    if (_image != null) {
+      print("Image already selected, skipping picker.");
+      return;
+    }
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false, // Only allow single image selection
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final pickedFile = result.files.first;
+
+        // Use bytes instead of path
+        final bytes = pickedFile.bytes; // Get the bytes of the picked file
+        if (bytes != null) {
+          setState(() {
+            _image = pickedFile; // Store the picked file
+            _selectedImageFile = pickedFile;
+          });
+          print("Picked image bytes: ${bytes.length} bytes");
+        } else {
+          print("No bytes found in the picked file.");
+        }
+      } else {
+        print("No image selected.");
+      }
+    } catch (e) {
+      print("Error picking image: ${e.toString()}");
+    }
+  }
+
+  // Function to upload image to Firebase Storage
+  Future<String?> _uploadImage(PlatformFile pickedFile) async {
+    try {
+      // Ensure that there is a file to upload
+      if (pickedFile.bytes == null) {
+        print("No image bytes to upload.");
+        return null;
+      }
+
+      // Create a reference to Firebase Storage
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('images/${pickedFile.name}'); // You can customize the path
+
+      // Upload the image bytes to Firebase Storage
+      UploadTask uploadTask = storageRef.putData(pickedFile.bytes!);
+
+      // Await the completion of the upload task and get the download URL
+      TaskSnapshot snapshot = await uploadTask.whenComplete(() {});
+      String TicketdownloadUrl = await snapshot.ref.getDownloadURL();
+
+      print("Image uploaded successfully: $TicketdownloadUrl");
+      return TicketdownloadUrl;
+    } catch (e) {
+      print("Error uploading image: $e");
+      return null; // Return null in case of error
+    }
+  }
+
+
 
   Duration _getTimelineDuration(String questionnaire) {
     // Define durations for each questionnaire option
@@ -709,10 +791,17 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
   }
 
 
+
   Widget _buildOwnerSection() {
     return _buildCard(
       title: 'Ticket Owner',
-      content: _buildTextField('Agent Name *', _agentNameController, 'Enter Agent Name', enabled: false), // Auto-filled and disabled
+      content: Column(
+        children: [
+          _buildTextField('Agent Name *', _agentNameController, 'Enter Agent Name', enabled: false), // Auto-filled and disabled
+          SizedBox(height: 8), // Add some space between the two fields
+          _buildTextField('Agent Email *', _agentEmailController, 'Enter Agent Email', enabled: false), // Auto-filled and disabled
+        ],
+      ),
     );
   }
 
@@ -721,10 +810,10 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       title: 'Ticket Information',
       content: Column(
         children: [
-          _buildTextField('Email', _emailController, 'Enter Email'),
-          SizedBox(height: 16),
-          _buildTextField('Phone', _phoneController, 'Enter Phone Number'),
-          SizedBox(height: 16),
+        //  _buildTextField('Email', _emailController, 'Enter Email'),
+        //  SizedBox(height: 16),
+       //   _buildTextField('Phone', _phoneController, 'Enter Phone Number'),
+        //  SizedBox(height: 16),
           _buildTextField('Subject *', _subjectController, 'Enter Subject'),
           SizedBox(height: 16),
           _buildDescriptionField(),
@@ -792,6 +881,37 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       ],
     );
   }
+  // Function to add image URL to the description field
+  Future<void> _addImageUrlToDescription() async {
+    // Check if the description is not empty
+    if (_descriptionController.text.isNotEmpty) {
+      String? downloadUrl; // This will store the image URL if an image is uploaded
+
+      // Check if an image has been picked
+      if (_selectedImageFile != null) {
+        // Only upload the image if one has been selected
+        downloadUrl = await _uploadImage(_selectedImageFile!);
+
+        // If the image was successfully uploaded, display it in the UI
+        if (downloadUrl != null) {
+          setState(() {
+            _uploadedImageUrl = downloadUrl; // Store the URL to display the image
+          });
+        } else {
+          print('Failed to upload the image.');
+        }
+      } else {
+        print("No image selected.");
+      }
+    } else {
+      // Handle the case when the description field is empty
+      print("Description is empty. Cannot add image URL.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill in the description before adding an image URL.')),
+      );
+    }
+  }
+
 
   Widget _buildDescriptionField() {
     return Column(
@@ -804,11 +924,25 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
           decoration: InputDecoration(
             hintText: 'Enter Description',
             border: OutlineInputBorder(),
+            suffixIcon: IconButton(
+              icon: Icon(Icons.screenshot), // Upload image icon
+              onPressed: () async {
+                await _pickImage(); // Pick the image
+                await _addImageUrlToDescription(); // Upload the image and add the URL to the description field
+              },
+            ), // Image upload icon on the right
           ),
         ),
+        if (_selectedImageFile != null) ...[
+          SizedBox(height: 8),
+          // Image.file(_selectedImageFile! as File, height: 100, width: 100), // Show the selected image
+        ],
       ],
     );
   }
+
+
+
 
   // Department Dropdown
   Widget _buildDepartmentDropdown() {

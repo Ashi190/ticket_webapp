@@ -52,7 +52,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   void initState() {
     super.initState();
     _fetchTicketData();
-    _initializeUserList();
     _animationController = AnimationController(
         vsync: this, duration: Duration(milliseconds: 300));
   }
@@ -75,6 +74,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     // Fetch the current user's role and department
     userRole = await _getUserRole(user.email!);
     userDepartment = await _getUserDepartment(user.email!);
+    _initializeUserList();
 
     // Fetch the ticket data from Firestore
     final ticketDoc = await FirebaseFirestore.instance
@@ -100,6 +100,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       // Admin and Support can view all tickets
       setState(() {
         _ticketData = ticketData;
+        _questionnaireController.text = _ticketData['questionnaire'];
+        _followUpQuestionController.text = _ticketData['follow_up_question'];
         _currentStatus = _ticketData['status'];
         _isLoading = false;
       });
@@ -176,10 +178,27 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   Future<void> _sendMessage() async {
     String questionnaireText = _questionnaireController.text;
     String followUpQuestionText = _followUpQuestionController.text;
+    // Fetch the ticket's image URL from the tickets collection
+    String? TicketdownloadUrl;
+    String? ticketQuestionnaire;
+    String? ticketFollowUpQuestion;
+    DocumentSnapshot ticketSnapshot = await FirebaseFirestore.instance
+        .collection('tickets')
+        .doc(widget.ticketId)
+        .get();
+
+    // Check if the document exists and get the image URL from it
+    if (ticketSnapshot.exists) {
+      TicketdownloadUrl = ticketSnapshot['image_url']; // Assuming 'image_url' was used when creating the ticket
+      ticketQuestionnaire = ticketSnapshot['questionnaire']; // Fetch ticket questionnaire
+      ticketFollowUpQuestion = ticketSnapshot['follow_up_question']; // Fetch ticket follow-up question
+    }
+    // Use the questionnaire and follow-up question from the original ticket if they are empty in the current reply
+    questionnaireText = questionnaireText.isNotEmpty ? questionnaireText : (ticketQuestionnaire ?? 'No questionnaire provided');
+    followUpQuestionText = followUpQuestionText.isNotEmpty ? followUpQuestionText : (ticketFollowUpQuestion ?? 'No follow-up question provided');
 
     if (_nameController.text.isNotEmpty && _replyController.text.isNotEmpty) {
       String? downloadUrl; // This will store the image URL if an image is uploaded
-
       // Only upload the image if one has been selected (_image is not null)
       if (_image != null) {
         downloadUrl = await _uploadImage(); // Upload image if available
@@ -194,9 +213,10 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
         'sender': _nameController.text,
         'message': _replyController.text,
         'timestamp': FieldValue.serverTimestamp(),
-        'imageUrl': downloadUrl ?? '', // If no image, store an empty string
-        'questionnaire': questionnaireText.isNotEmpty ? questionnaireText : 'No questionnaire provided',
-        'follow_up_question': followUpQuestionText.isNotEmpty ? followUpQuestionText : 'No follow-up question provided',
+        'imageUrl': downloadUrl ??  '', // Include either the message image or the ticket image
+        'questionnaire': questionnaireText,
+        'follow_up_question': followUpQuestionText,
+        'image_url': TicketdownloadUrl ?? '',
       });
 
       // Clear input fields after sending the message
@@ -583,7 +603,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   }
 
   Widget _buildMessageTile(Map<String, dynamic> message) {
-    bool isSentByUser = message['sender'] == 'email'; // Replace 'userId' with your actual logged-in user ID.
+    bool isSentByUser = message['sender'] == 'email'; // Replace 'email' with your actual logic for user check.
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0), // Added padding for separation
@@ -696,6 +716,35 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                         ),
                       ),
                     ),
+
+                  // Display ticket image if image_url is present (this is from the ticket)
+                  if (message.containsKey('image_url') && message['image_url'] != '')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => FullScreenImage(imageUrl: message['image_url']),
+                            ),
+                          );
+                        },
+                        child: Image.network(
+                          message['image_url'],
+                          height: 200, // Adjust height as needed
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(child: CircularProgressIndicator());
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Text('Failed to load image');
+                          },
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -704,6 +753,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       ),
     );
   }
+
 
   Widget _buildReplySection() {
     return Card(
@@ -852,9 +902,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
             setState(() {
               _selectedUser = newValue; // Store the email of the selected user
             });
-          },
-          onTap: () {
-            _initializeUserList(); // Populate _users when dropdown is opened
           },
           items: _users.isNotEmpty
               ? _users.map<DropdownMenuItem<String>>((user) {
