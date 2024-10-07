@@ -26,11 +26,11 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   late Map<String, dynamic> _ticketData;
   String _currentStatus = 'Open';
   bool _isLoading = true;
-  late String userEmail;
+  // late String userEmail;
   String? userRole; // Made nullable
   String? userDepartment; // Made nullable
-  late String userId; // Declare userId variable
-  String? _fileName;
+  // late String userId; // Declare userId variable
+  // String? _fileName;
   PlatformFile? _image; // Replace this with your variable for storing the image
   // Add this variable to track if an image has been picked
 
@@ -90,19 +90,21 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       return;
     }
 
-    // Extract ticket data
+    // Extract ticket data with null safety checks
     final ticketData = ticketDoc.data()!;
-    final ticketDepartment = ticketData['department'];
-    final assignedTo = ticketData['assignedTo'];
+    String ticketDepartment = ticketData['department'] ?? 'Unknown'; // Default to 'Unknown' if null
+    String assignedTo = ticketData['assignedTo'] ?? 'Unassigned'; // Handle null assignment
+    String ticketQuestionnaire = ticketData['questionnaire'] ?? 'No questionnaire provided'; // Default message if null
+    String ticketFollowUpQuestion = ticketData['follow_up_question'] ?? 'No follow-up question provided'; // Default message if null
 
     // Role-based filtering logic
     if (userDepartment == 'Admin' || userDepartment == 'Support') {
       // Admin and Support can view all tickets
       setState(() {
         _ticketData = ticketData;
-        _questionnaireController.text = _ticketData['questionnaire'];
-        _followUpQuestionController.text = _ticketData['follow_up_question'];
-        _currentStatus = _ticketData['status'];
+        _questionnaireController.text = ticketQuestionnaire; // Use null-safe value
+        _followUpQuestionController.text = ticketFollowUpQuestion; // Use null-safe value
+        _currentStatus = _ticketData['status'] ?? 'Unknown'; // Default to 'Unknown' if status is null
         _isLoading = false;
       });
     } else if (userRole == 'DepartmentHead') {
@@ -110,7 +112,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       if (userDepartment == ticketDepartment) {
         setState(() {
           _ticketData = ticketData;
-          _currentStatus = _ticketData['status'];
+          _currentStatus = _ticketData['status'] ?? 'Unknown'; // Handle null status
           _isLoading = false;
         });
 
@@ -122,11 +124,11 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
         Navigator.pop(context);
       }
     } else if (userRole == 'Member') {
-      // POC (member) can only see tickets assigned to them
+      // Member can only see tickets assigned to them
       if (assignedTo == user.email) {
         setState(() {
           _ticketData = ticketData;
-          _currentStatus = _ticketData['status'];
+          _currentStatus = _ticketData['status'] ?? 'Unknown'; // Handle null status
           _isLoading = false;
         });
       } else {
@@ -142,6 +144,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       _updateTicketStatus('In Progress');
     }
   }
+
 
   Future<String> _getUserRole(String email) async {
     final userQuery = await FirebaseFirestore.instance
@@ -166,14 +169,34 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   }
 
   Future<void> _updateTicketStatus(String status) async {
-    await FirebaseFirestore.instance
-        .collection('tickets')
-        .doc(widget.ticketId)
-        .update({'status': status});
-    setState(() {
-      _currentStatus = status;
-    });
+    try {
+      // Update both 'department' and 'status' fields in Firestore
+      await FirebaseFirestore.instance
+          .collection('tickets')
+          .doc(widget.ticketId)
+          .update({
+        'department': _ticketData['department'] ?? 'Unknown', // Provide fallback for department
+        'status': status, // Update status with the provided value
+      });
+
+      // Update local state to reflect the new status
+      setState(() {
+        _currentStatus = status;
+      });
+
+      // Optionally show a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ticket status updated to $status')),
+      );
+    } catch (e) {
+      // Handle potential errors (e.g., network issues, Firestore permission issues)
+      print('Error updating ticket status: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update ticket status')),
+      );
+    }
   }
+
 
   Future<void> _sendMessage() async {
     String questionnaireText = _questionnaireController.text;
