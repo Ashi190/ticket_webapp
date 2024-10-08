@@ -5,7 +5,6 @@ import 'AddTicketScreen.dart';
 import 'AuthProvider.dart';
 import 'ProfileScreen.dart';
 import 'TicketListScreen.dart';
-import 'TicketListScreen.dart' as TicketList;
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -17,6 +16,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late PageController _pageController; // Add a PageController
+  int _currentIndex = 0; // Track the current screen index
 
   @override
   void initState() {
@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    _pageController = PageController(); // Initialize the PageController
+    _pageController = PageController(initialPage: 0); // Initialize the PageController with the DashboardScreen as the first page
   }
 
   @override
@@ -97,37 +97,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   opacity: _fadeAnimation,
                                   child: SlideTransition(
                                     position: _slideAnimation,
-                                    child: Text(
-                                      'Welcome to the Ticket System',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 10),
-                                FadeTransition(
-                                  opacity: _fadeAnimation,
-                                  child: SlideTransition(
-                                    position: _slideAnimation,
-                                    child: Text(
-                                      'What would you like to do?',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.white70,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                                FadeTransition(
-                                  opacity: _fadeAnimation,
-                                  child: SlideTransition(
-                                    position: _slideAnimation,
                                     child: ElevatedButton(
                                       onPressed: () {
                                         _pageController.jumpToPage(1); // Navigate to AddTicketScreen
@@ -176,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     position: _slideAnimation,
                                     child: ElevatedButton(
                                       onPressed: () {
-                                        _pageController.jumpToPage(3); // Navigate to DashboardScreen
+                                        _pageController.jumpToPage(0); // Navigate back to DashboardScreen
                                       },
                                       style: ElevatedButton.styleFrom(
                                         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -204,10 +173,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           child: PageView(
                             controller: _pageController, // Use the PageController
                             children: [
-                              Center(child: Text("Welcome Screen")), // Placeholder for HomeScreen content
-                              AddTicketScreen(), // AddTicketScreen
-                              TicketListScreen(), // TicketListScreen
-                              DashboardScreen(), // DashboardScreen
+                              DashboardScreen(),   // Open DashboardScreen as the first screen
+                              AddTicketScreen(),   // AddTicketScreen
+                              TicketListScreen(),  // TicketListScreen
+                              // If needed, you can add more screens here
                             ],
                           ),
                         ),

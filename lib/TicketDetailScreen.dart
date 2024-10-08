@@ -92,7 +92,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
 
     // Extract ticket data with null safety checks
     final ticketData = ticketDoc.data()!;
-    String ticketDepartment = ticketData['department'] ?? 'Unknown'; // Default to 'Unknown' if null
+    String ticketDepartment = ticketData['department'] ?? 'Unknown'; // Default to f'Unknown' if null
     String assignedTo = ticketData['assignedTo'] ?? 'Unassigned'; // Handle null assignment
     String ticketQuestionnaire = ticketData['questionnaire'] ?? 'No questionnaire provided'; // Default message if null
     String ticketFollowUpQuestion = ticketData['follow_up_question'] ?? 'No follow-up question provided'; // Default message if null
@@ -458,12 +458,12 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
               ),
             ),
             SizedBox(height: 10),
-            _buildDetailRow('Email', _ticketData['email']),
-            _buildDetailRow('Phone', _ticketData['phone']),
+            // _buildDetailRow('Email', _ticketData['agent_email']),
+            // _buildDetailRow('Phone', _ticketData['phone']),
             _buildDetailRow('Subject', _ticketData['subject']),
             _buildDetailRow('Description', _ticketData['description']),
             _buildDetailRow('Department', _ticketData['department']),
-            _buildDetailRow('sub_department', _ticketData['sub_department']),
+            // _buildDetailRow('sub_department', _ticketData['sub_department']),
             _buildDetailRow('Agent Name', _ticketData['agent_name']),
             _buildDetailRow('questionnaire', _ticketData['questionnaire']),
             _buildDetailRow('follow_up_question', _ticketData['follow_up_question']),
