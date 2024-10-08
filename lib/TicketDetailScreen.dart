@@ -1,16 +1,14 @@
-
+import 'dart:io';
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+
 import 'FullScreenImage.dart';
-
-
 
 class TicketDetailScreen extends StatefulWidget {
   final String ticketId;
@@ -21,51 +19,31 @@ class TicketDetailScreen extends StatefulWidget {
   _TicketDetailScreenState createState() => _TicketDetailScreenState();
 }
 
-class _TicketDetailScreenState extends State<TicketDetailScreen>
-    with SingleTickerProviderStateMixin {
-  late Map<String, dynamic> _ticketData;
-  String _currentStatus = 'Open';
-  bool _isLoading = true;
-  // late String userEmail;
+class _TicketDetailScreenState extends State<TicketDetailScreen> {
+  PlatformFile? _image;
+  String? _uploadedImageUrl;
+  String? _savedImageUrl;
   String? userRole; // Made nullable
-  String? userDepartment; // Made nullable
-  // late String userId; // Declare userId variable
-  // String? _fileName;
-  PlatformFile? _image; // Replace this with your variable for storing the image
-  // Add this variable to track if an image has been picked
+  String? userDepartment;
 
-
- // final ImagePicker _picker = ImagePicker();
-  final TextEditingController _nameController = TextEditingController();
+  // final ImagePicker _picker = ImagePicker();
+  // final TextEditingController _nameController = TextEditingController();
   final TextEditingController _replyController = TextEditingController();
   late AnimationController _animationController;
   final TextEditingController _questionnaireController = TextEditingController();
   final TextEditingController _followUpQuestionController = TextEditingController();
 
-
+  bool _isLoading = true;
+  String _currentStatus = 'Open';
+  Map<String, dynamic>? _ticketData;
+  bool _isUserListInitialized = false; // Flag to check if user list is initialized
   String? _selectedUser;
   late List<Map<String, dynamic>> _users = []; // Store both name and email
-
-  bool _isUserListInitialized = false; // Flag to check if user list is initialized
-
   @override
   void initState() {
     super.initState();
     _fetchTicketData();
-    _animationController = AnimationController(
-        vsync: this, duration: Duration(milliseconds: 300));
   }
-
-  @override
-  void dispose() {
-    // Dispose the controllers when not in use to prevent memory leaks
-    _questionnaireController.dispose();
-    _followUpQuestionController.dispose();
-    _nameController.dispose();
-    _replyController.dispose();
-    super.dispose();
-  }
-
 
   Future<void> _fetchTicketData() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -90,9 +68,20 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       return;
     }
 
-    // Extract ticket data with null safety checks
-    final ticketData = ticketDoc.data()!;
-    String ticketDepartment = ticketData['department'] ?? 'Unknown'; // Default to f'Unknown' if null
+    // Safely get the data from the document snapshot
+    final ticketData = ticketDoc.data();
+
+    // Check if ticketData is null
+    if (ticketData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No ticket data found.')),
+      );
+      Navigator.pop(context);
+      return;
+    }
+
+    // Safely extract values with null-aware operators
+    String ticketDepartment = ticketData['department'] ?? 'Unknown'; // Default to 'Unknown' if null
     String assignedTo = ticketData['assignedTo'] ?? 'Unassigned'; // Handle null assignment
     String ticketQuestionnaire = ticketData['questionnaire'] ?? 'No questionnaire provided'; // Default message if null
     String ticketFollowUpQuestion = ticketData['follow_up_question'] ?? 'No follow-up question provided'; // Default message if null
@@ -104,7 +93,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
         _ticketData = ticketData;
         _questionnaireController.text = ticketQuestionnaire; // Use null-safe value
         _followUpQuestionController.text = ticketFollowUpQuestion; // Use null-safe value
-        _currentStatus = _ticketData['status'] ?? 'Unknown'; // Default to 'Unknown' if status is null
+        _currentStatus = ticketData['status'] ?? 'Unknown'; // Default to 'Unknown' if status is null
         _isLoading = false;
       });
     } else if (userRole == 'DepartmentHead') {
@@ -112,7 +101,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       if (userDepartment == ticketDepartment) {
         setState(() {
           _ticketData = ticketData;
-          _currentStatus = _ticketData['status'] ?? 'Unknown'; // Handle null status
+          _currentStatus = ticketData['status'] ?? 'Unknown'; // Handle null status
           _isLoading = false;
         });
 
@@ -128,7 +117,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       if (assignedTo == user.email) {
         setState(() {
           _ticketData = ticketData;
-          _currentStatus = _ticketData['status'] ?? 'Unknown'; // Handle null status
+          _currentStatus = ticketData['status'] ?? 'Unknown'; // Handle null status
           _isLoading = false;
         });
       } else {
@@ -143,130 +132,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     if (_currentStatus == 'Open') {
       _updateTicketStatus('In Progress');
     }
-  }
-
-
-  Future<String> _getUserRole(String email) async {
-    final userQuery = await FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .get();
-    if (userQuery.docs.isNotEmpty) {
-      return userQuery.docs.first['role'];
-    }
-    return userQuery.docs.isNotEmpty ? userQuery.docs.first['role'] : null;
-  }
-
-  Future<String> _getUserDepartment(String email) async {
-    final userQuery = await FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .get();
-    if (userQuery.docs.isNotEmpty) {
-      return userQuery.docs.first['department'];
-    }
-    return userQuery.docs.isNotEmpty ? userQuery.docs.first['department'] : null;;
-  }
-
-  Future<void> _updateTicketStatus(String status) async {
-    try {
-      // Update both 'department' and 'status' fields in Firestore
-      await FirebaseFirestore.instance
-          .collection('tickets')
-          .doc(widget.ticketId)
-          .update({
-        'department': _ticketData['department'] ?? 'Unknown', // Provide fallback for department
-        'status': status, // Update status with the provided value
-      });
-
-      // Update local state to reflect the new status
-      setState(() {
-        _currentStatus = status;
-      });
-
-      // Optionally show a success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ticket status updated to $status')),
-      );
-    } catch (e) {
-      // Handle potential errors (e.g., network issues, Firestore permission issues)
-      print('Error updating ticket status: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update ticket status')),
-      );
-    }
-  }
-
-
-  Future<void> _sendMessage() async {
-    String questionnaireText = _questionnaireController.text;
-    String followUpQuestionText = _followUpQuestionController.text;
-    // Fetch the ticket's image URL from the tickets collection
-    String? TicketdownloadUrl;
-    String? ticketQuestionnaire;
-    String? ticketFollowUpQuestion;
-    DocumentSnapshot ticketSnapshot = await FirebaseFirestore.instance
-        .collection('tickets')
-        .doc(widget.ticketId)
-        .get();
-
-    // Check if the document exists and get the image URL from it
-    if (ticketSnapshot.exists) {
-      TicketdownloadUrl = ticketSnapshot['image_url']; // Assuming 'image_url' was used when creating the ticket
-      ticketQuestionnaire = ticketSnapshot['questionnaire']; // Fetch ticket questionnaire
-      ticketFollowUpQuestion = ticketSnapshot['follow_up_question']; // Fetch ticket follow-up question
-    }
-    // Use the questionnaire and follow-up question from the original ticket if they are empty in the current reply
-    questionnaireText = questionnaireText.isNotEmpty ? questionnaireText : (ticketQuestionnaire ?? 'No questionnaire provided');
-    followUpQuestionText = followUpQuestionText.isNotEmpty ? followUpQuestionText : (ticketFollowUpQuestion ?? 'No follow-up question provided');
-
-    if (_nameController.text.isNotEmpty && _replyController.text.isNotEmpty) {
-      String? downloadUrl; // This will store the image URL if an image is uploaded
-      // Only upload the image if one has been selected (_image is not null)
-      if (_image != null) {
-        downloadUrl = await _uploadImage(); // Upload image if available
-      }
-
-      // Send the reply message along with the image URL (if any)
-      await FirebaseFirestore.instance
-          .collection('tickets')
-          .doc(widget.ticketId)
-          .collection('messages')
-          .add({
-        'sender': _nameController.text,
-        'message': _replyController.text,
-        'timestamp': FieldValue.serverTimestamp(),
-        'imageUrl': downloadUrl ??  '', // Include either the message image or the ticket image
-        'questionnaire': questionnaireText,
-        'follow_up_question': followUpQuestionText,
-        'image_url': TicketdownloadUrl ?? '',
-      });
-
-      // Clear input fields after sending the message
-      _nameController.clear();
-      _replyController.clear();
-      _questionnaireController.clear(); // Clear questionnaire after sending
-      _followUpQuestionController.clear(); // Clear follow-up question after sending
-      _image = null; // Reset image after message is sent
-    } else {
-      // Show an error if either name or reply is missing
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter both name and reply')),
-      );
-    }
-  }
-
-  Future<void> testFirestoreWrite() async {
-    await FirebaseFirestore.instance
-        .collection('tickets')
-        .doc(widget.ticketId)
-        .collection('messages')
-        .add({
-      'test_field': 'This is a test message',
-      'questionnaire': 'Test questionnaire',
-      'follow_up_question': 'Test follow-up question',
-    });
-    print('Test write successful');
   }
 
   Future<void> _initializeUserList() async {
@@ -308,44 +173,63 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
       });
     }
   }
-
-  String _formatTimestamp(Timestamp? timestamp) {
-    if (timestamp != null) {
-      DateTime dateTime = timestamp.toDate();
-      return DateFormat('yyyy-MM-dd – HH:mm').format(dateTime);
+  Future<String> _getUserRole(String email) async {
+    final userQuery = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
+    if (userQuery.docs.isNotEmpty) {
+      return userQuery.docs.first['role'];
     }
-    return 'Unknown time';
+    return userQuery.docs.isNotEmpty ? userQuery.docs.first['role'] : null;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Ticket Details'),
-        elevation: 2.0,
-        backgroundColor: Colors.white, // Changed to teal
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTicketDetailsBox(),
-              SizedBox(height: 20),
-              _buildMessageSection(),
-              SizedBox(height: 20),
-              _buildReplySection(),
-              SizedBox(height: 20),
-              _buildReassignSection(),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: _buildBottomAppBar(),
-    );
+  Future<String> _getUserDepartment(String email) async {
+    final userQuery = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
+    if (userQuery.docs.isNotEmpty) {
+      return userQuery.docs.first['department'];
+    }
+    return userQuery.docs.isNotEmpty ? userQuery.docs.first['department'] : null;;
+  }
+
+  Future<void> _updateTicketStatus(String status) async {
+    try {
+      // Ensure _ticketData is not null before accessing 'department'
+      if (_ticketData != null) {
+        // Update both 'department' and 'status' fields in Firestore
+        await FirebaseFirestore.instance
+            .collection('tickets')
+            .doc(widget.ticketId)
+            .update({
+          'department': _ticketData!['department'] ?? 'Unknown', // Use null-aware operator to handle null
+          'status': status, // Update status with the provided value
+        });
+
+        // Update local state to reflect the new status
+        setState(() {
+          _currentStatus = status;
+        });
+
+        // Optionally show a success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ticket status updated to $status')),
+        );
+      } else {
+        // Handle case where _ticketData is null
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update ticket status: No ticket data available')),
+        );
+      }
+    } catch (e) {
+      // Handle potential errors (e.g., network issues, Firestore permission issues)
+      print('Error updating ticket status: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update ticket status')),
+      );
+    }
   }
 
   Future<void> _pickImage() async {
@@ -412,116 +296,92 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     }
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Ticket Details'),
+        backgroundColor: Colors.teal.shade800,
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            // Left Column for Ticket Details
+            Expanded(
+              flex: 1,
+              child: _buildTicketDetailsBox(),
+            ),
+
+            SizedBox(width: 20),
+
+            // Right Column for Chat and Actions
+            Expanded(
+              flex: 2,
+              child: Column(
+                children: [
+                  _buildChatSection(),
+                  SizedBox(height: 20),
+                  _buildMessageInputSection(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomActionBar(),
+    );
+  }
+
   Widget _buildTicketDetailsBox() {
     return Card(
-      elevation: 12.0, // Increased elevation for more prominence
+      elevation: 8,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.teal.shade100, Colors.white], // Teal and white gradient
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        padding: const EdgeInsets.all(20.0), // Increased padding
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Text(
-                  'Ticket ID: ${widget.ticketId}',
-                  style: TextStyle(
-                    fontSize: 26, // Increased font size for visibility
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                ),
-                Tooltip(
-                  message: 'This is the unique identifier for the ticket.',
-                  child: Icon(Icons.info_outline, color: Colors.teal),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Divider(color: Colors.teal.shade200), // Divider for separation
-            SizedBox(height: 10),
             Text(
-              'Ticket Details',
+              'TICKET ID : ${widget.ticketId}',
               style: TextStyle(
-                fontSize: 22, // Increased font size for heading
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.teal.shade800,
               ),
             ),
-            SizedBox(height: 10),
-            // _buildDetailRow('Email', _ticketData['agent_email']),
-            // _buildDetailRow('Phone', _ticketData['phone']),
-            _buildDetailRow('Subject', _ticketData['subject']),
-            _buildDetailRow('Description', _ticketData['description']),
-            _buildDetailRow('Department', _ticketData['department']),
-            // _buildDetailRow('sub_department', _ticketData['sub_department']),
-            _buildDetailRow('Agent Name', _ticketData['agent_name']),
-            _buildDetailRow('questionnaire', _ticketData['questionnaire']),
-            _buildDetailRow('follow_up_question', _ticketData['follow_up_question']),
-            SizedBox(height: 10),
-            Divider(color: Colors.teal.shade200), // Divider for separation
-            SizedBox(height: 10),
-            _buildStatusChip('Status', _currentStatus), // Status chip
-          ],
-        ),
-      ),
-    );
-  }
+            Divider(),
+            // _buildDetailRow('Contact Name', _ticketData?['agent_name']),
+            //  _buildDetailRow('Email', _ticketData?['email']),
+            //  _buildDetailRow('Phone', _ticketData?['phone']),
+            //  _buildDetailRow('Account Name', _ticketData?['account_name']),
 
-  Widget _buildDetailRow(String title, String value) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4.0), // Reduced margin for closer rows
-      decoration: BoxDecoration(
-        color: Colors.teal.shade50, // Light background color for better visibility
-        borderRadius: BorderRadius.circular(8.0), // Rounded corners
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2), // Subtle shadow for depth
-            spreadRadius: 1,
-            blurRadius: 3,
-            offset: Offset(0, 2), // Changes the position of the shadow
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0), // Increased padding for comfort
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2, // Allocate space proportionally for title
-              child: Row(
-                children: [
-                  Icon(Icons.info, color: Colors.teal.shade600), // Icon for the title
-                  SizedBox(width: 8), // Space between icon and text
-                  Text(
-                    '$title:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18, // Increased font size for title
-                      color: Colors.teal.shade600, // Consistent color
-                    ),
+            _buildDetailRow('Agent Name', _ticketData?['agent_name']),
+            _buildDetailRow('Subject', _ticketData?['subject']),
+            _buildDetailRow('Description', _ticketData?['description']),
+            _buildDetailRow('Department', _ticketData?['department']),
+            _buildDetailRow('Questionnaire', _ticketData?['questionnaire']),
+            _buildDetailRow('Followup Question', _ticketData?['followup_question']),
+            SizedBox(height: 20),
+            Row(
+              children: [
+                Text(
+                  'STATUS:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal.shade800,
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 3, // Allocate more space for the value
-              child: Text(
-                value ?? 'N/A', // Default to 'N/A' if value is null
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87, // Darker color for better contrast
                 ),
-              ),
+                SizedBox(width: 10),
+                Chip(
+                  label: Text(_currentStatus),
+                  backgroundColor: Colors.orangeAccent,
+                ),
+              ],
             ),
           ],
         ),
@@ -529,352 +389,266 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     );
   }
 
-  Widget _buildStatusChip(String title, String status) {
+  Widget _buildDetailRow(String title, String? value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0), // Increased vertical padding
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             '$title:',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.teal.shade600, // Consistent teal color
+              color: Colors.teal.shade600,
             ),
           ),
-          SizedBox(width: 10), // Space between title and chip
-          Tooltip(
-            message: 'Current ticket status: $status', // Tooltip message updated
-            child: Chip(
-              label: Text(
-                status, // Use status parameter directly
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16, // Increased font size for better visibility
-                  fontWeight: FontWeight.w500, // Slightly less bold for aesthetics
-                ),
-              ),
-              backgroundColor: _getStatusColor(status), // Background color based on status
-              elevation: 4, // Subtle shadow for depth
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Padding for chip
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12), // Rounded corners
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Open':
-        return Colors.green;
-      case 'In Progress':
-        return Colors.orange;
-      case 'Closed':
-        return Colors.yellow;
-      default:
-        return Colors.grey; // Default color for unknown status
-    }
-  }
-
-  Widget _buildMessageSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16.0), // Add padding for better spacing
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
           Text(
-            'Messages',
-            style: TextStyle(
-              fontSize: 22, // Increased font size for better visibility
-              fontWeight: FontWeight.bold,
-              color: Colors.teal.shade800, // Darker shade for better contrast
-            ),
-          ),
-          SizedBox(height: 12), // Increased spacing
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('tickets')
-                .doc(widget.ticketId)
-                .collection('messages')
-                .orderBy('timestamp', descending: true)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return Center(child: CircularProgressIndicator());
-              }
-
-              final messages = snapshot.data!.docs;
-
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final message = messages[index].data() as Map<String, dynamic>;
-                  return _buildMessageTile(message);
-                },
-              );
-            },
+            value ?? 'N/A',
+            style: TextStyle(color: Colors.black),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMessageTile(Map<String, dynamic> message) {
-    bool isSentByUser = message['sender'] == 'email'; // Replace 'email' with your actual logic for user check.
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0), // Added padding for separation
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: isSentByUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (!isSentByUser) // Display avatar only for other users
-            CircleAvatar(
-              backgroundColor: Colors.teal,
-              child: Text(
-                message['sender'][0].toUpperCase(),
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          SizedBox(width: 10), // Space between avatar and message
-          Flexible(
-            child: Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSentByUser ? Colors.white : Colors.white70, // Color change based on sender
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment:
-                isSentByUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                children: [
-                  // Sender and time
-                  Row(
-                    mainAxisAlignment: isSentByUser
-                        ? MainAxisAlignment.end
-                        : MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (!isSentByUser) // Display sender name for other users
-                        Text(
-                          message['sender'],
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.teal.shade800,
-                          ),
-                        ),
-                      Text(
-                        _formatTimestamp(message['timestamp']),
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 6),
-
-                  // Main message content
-                  Text(
-                    message['message'] ?? 'No message',
-                    style: TextStyle(
-                      color: isSentByUser ? Colors.white : Colors.black, // Text color based on sender
-                      fontSize: 14,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-
-                  // Display questionnaire if it exists
-                  if (message.containsKey('questionnaire') && message['questionnaire'] != null)
-                    Text(
-                      'Questionnaire: ${message['questionnaire']}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.blue.shade600,
-                      ),
-                    ),
-                  SizedBox(height: 6),
-
-                  // Display follow-up question if it exists
-                  if (message.containsKey('follow_up_question') && message['follow_up_question'] != null)
-                    Text(
-                      'Follow-up Question: ${message['follow_up_question']}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.orange.shade600,
-                      ),
-                    ),
-                  SizedBox(height: 6),
-
-                  // Display image if imageUrl is present
-                  if (message.containsKey('imageUrl') && message['imageUrl'] != '')
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FullScreenImage(imageUrl: message['imageUrl']),
-                            ),
-                          );
-                        },
-                        child: Image.network(
-                          message['imageUrl'],
-                          height: 200, // Adjust height as needed
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(child: CircularProgressIndicator());
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Text('Failed to load image');
-                          },
-                        ),
-                      ),
-                    ),
-
-                  // Display ticket image if image_url is present (this is from the ticket)
-                  if (message.containsKey('image_url') && message['image_url'] != '')
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => FullScreenImage(imageUrl: message['image_url']),
-                            ),
-                          );
-                        },
-                        child: Image.network(
-                          message['image_url'],
-                          height: 200, // Adjust height as needed
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Center(child: CircularProgressIndicator());
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Text('Failed to load image');
-                          },
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-  Widget _buildReplySection() {
-    return Card(
-      elevation: 6.0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
+  // Chat Section UI with logic from backend and message retrieval.
+  Widget _buildChatSection() {
+    return Expanded(
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Reply to Ticket',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
-              ),
-            ),
-            SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: InputDecoration(
-                labelText: 'Your Name',
-                labelStyle: TextStyle(color: Colors.teal),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.teal),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.teal, width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey, width: 1),
-                ),
-              ),
-            ),
-            SizedBox(height: 12),
-            TextField(
-              controller: _replyController,
-              maxLines: 4,
-              decoration: InputDecoration(
-                labelText: 'Your Reply',
-                labelStyle: TextStyle(color: Colors.teal),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.teal),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.teal, width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey, width: 1),
-                ),
-              ),
-            ),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    // This button now only sends the reply and does not interact with the image functionality
-                    await _sendMessage(); // Call your send message logic here
-                  },
-                  child: Text('Send Reply'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-                    textStyle: TextStyle(fontSize: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+            // Chat header with user details
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(
+                        'https://via.placeholder.com/150'), // Example Avatar, replace with actual image URL.
+                    radius: 25,
                   ),
-                ),
-                Tooltip(
-                  message: 'Upload Photo',
-                  child: IconButton(
-                    icon: Icon(Icons.photo),
-                    color: Colors.teal,
-                    onPressed: () async {
-                      // Only trigger the image picking when this button is clicked
-                      await _pickImage(); // Call to pick image from gallery
+                  SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Chat Support',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Divider(),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('tickets')
+                    .doc(widget.ticketId)
+                    .collection('messages')
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  final messages = snapshot.data!.docs;
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(8.0),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message =
+                      messages[index].data() as Map<String, dynamic>;
+                      return _buildChatBubble(message as Map<String, dynamic>); // Pass the message map
                     },
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+
+// Function to build chat bubble with styling
+  Widget _buildChatBubble(Map<String, dynamic> message) {
+    bool isMe = message['sender'] == 'email'; // Logic for identifying sender
+
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: 5),
+        padding: EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isMe ? Colors.blue : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          crossAxisAlignment:
+          isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            // Display the message text if available
+            if (message['message'] != null && message['message'].isNotEmpty)
+              Text(
+                message['message'],
+                style: TextStyle(
+                    color: isMe ? Colors.white : Colors.black),
+              ),
+            SizedBox(height: 5),
+
+            // Display the image if the imageUrl is available
+            if (message['imageUrl'] != null && message['imageUrl'].isNotEmpty)
+              GestureDetector(
+                onTap: () {
+                  // Optional: Display the image in full-screen view
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FullScreenImage(
+                        imageUrl: message['imageUrl'],
+                      ),
+                    ),
+                  );
+                },
+                child: Image.network(
+                  message['imageUrl'],
+                  height: 200, // Adjust the height as needed
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+// Input section with send message functionality
+  Widget _buildMessageInputSection() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: Row(
+          children: [
+            // Pin Icon for attaching images
+            IconButton(
+              icon: Icon(Icons.attach_file, color: Colors.teal.shade800),
+              onPressed: () async {
+                await _pickImage(); // Open the image picker when pin is clicked
+              },
+            ),
+            SizedBox(width: 10),
+
+            Icon(Icons.emoji_emotions, color: Colors.teal.shade800),
+            SizedBox(width: 10),
+
+            // Text Input for message
+            Expanded(
+              child: TextField(
+                controller: _replyController,
+                decoration: InputDecoration(
+                  hintText: 'Enter Your Message...',
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+
+            // Send Button
+            IconButton(
+              onPressed: () async {
+                if (_replyController.text.isNotEmpty || _image != null) {
+                  await _sendMessage(); // Send message with text and image if available
+                }
+              },
+              icon: Icon(Icons.send, color: Colors.blueAccent),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+
+  Future<void> _sendMessage() async {
+    String questionnaireText = _questionnaireController.text;
+    String followUpQuestionText = _followUpQuestionController.text;
+
+    // Fetch the ticket's image URL from the tickets collection (if applicable)
+    String? TicketdownloadUrl;
+    String? ticketQuestionnaire;
+    String? ticketFollowUpQuestion;
+
+    DocumentSnapshot ticketSnapshot = await FirebaseFirestore.instance
+        .collection('tickets')
+        .doc(widget.ticketId)
+        .get();
+
+    // Check if the document exists and get the image URL from it
+    if (ticketSnapshot.exists) {
+      TicketdownloadUrl = ticketSnapshot['image_url']; // Assuming 'image_url' was used when creating the ticket
+      ticketQuestionnaire = ticketSnapshot['questionnaire']; // Fetch ticket questionnaire
+      ticketFollowUpQuestion = ticketSnapshot['follow_up_question']; // Fetch ticket follow-up question
+    }
+
+    // Use the questionnaire and follow-up question from the original ticket if they are empty in the current reply
+    questionnaireText = questionnaireText.isNotEmpty ? questionnaireText : (ticketQuestionnaire ?? 'No questionnaire provided');
+    followUpQuestionText = followUpQuestionText.isNotEmpty ? followUpQuestionText : (ticketFollowUpQuestion ?? 'No follow-up question provided');
+
+    final user = FirebaseAuth.instance.currentUser; // Get the current user
+    if (user == null) return; // Exit if no user is logged in
+
+    // Ensure the reply field is not empty
+    if (_replyController.text.isNotEmpty || _image != null) {
+      String? downloadUrl; // This will store the image URL if an image is uploaded
+
+      // Upload the image if one has been selected
+      if (_image != null) {
+        downloadUrl = await _uploadImage(); // Upload image and get the download URL
+      }
+
+      // Send the reply message along with the image URL (if any)
+      await FirebaseFirestore.instance
+          .collection('tickets')
+          .doc(widget.ticketId)
+          .collection('messages')
+          .add({
+        'sender': user.email, // Send the email of the logged-in user
+        'message': _replyController.text,
+        'timestamp': FieldValue.serverTimestamp(),
+        'imageUrl': downloadUrl ?? '', // Include the image URL if an image was uploaded
+        'questionnaire': questionnaireText,
+        'follow_up_question': followUpQuestionText,
+        'image_url': TicketdownloadUrl ?? '',
+      });
+
+      // Clear input fields after sending the message
+      _replyController.clear();
+      _questionnaireController.clear(); // Clear questionnaire after sending
+      _followUpQuestionController.clear(); // Clear follow-up question after sending
+      _image = null; // Reset the image after message is sent
+    } else {
+      // Show an error if the reply field is empty
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please enter your reply or select an image')),
+      );
+    }
+  }
+
 
   Future<void> _reassignTicket() async {
     if (_selectedUser == null) {
@@ -905,190 +679,43 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     }
   }
 
-  Widget _buildReassignSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Reassign Ticket',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.teal, // Keep this teal
-          ),
-        ),
-        SizedBox(height: 10),
-        DropdownButton<String>(
-          value: _selectedUser,
-          hint: Text('Select User'),
-          onChanged: (newValue) {
-            setState(() {
-              _selectedUser = newValue; // Store the email of the selected user
-            });
-          },
-          items: _users.isNotEmpty
-              ? _users.map<DropdownMenuItem<String>>((user) {
-            return DropdownMenuItem<String>(
-              value: user['email'], // Save email as the value
-              child: Text(
-                user['name'], // Display name in the dropdown
-                style: TextStyle(color: Colors.black), // Set text color to black
-              ),
-            );
-          }).toList()
-              : [
-            DropdownMenuItem<String>(
-              value: null,
-              child: Text(
-                'No users available',
-                style: TextStyle(color: Colors.black), // Set fallback option text color to black
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 10),
-        Tooltip(
-          message: 'Reassign the ticket', // Tooltip message
-          child: ElevatedButton(
-            onPressed: () {
-              _reassignTicket(); // Implement reassign functionality here
-              if (_selectedUser != null) {
-                print('Reassigning ticket to: $_selectedUser');
-              } else {
-                print('No user selected for reassignment.');
-              }
-            },
-            child: Text(
-              'Reassign Ticket',
-              style: TextStyle(color: Colors.black), // Set button text color to black
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal, // Changed to teal
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildBottomAppBar() {
-    return BottomAppBar(
-      elevation: 10,
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            // Under Progress Button with Icon
-            ElevatedButton.icon(
-              onPressed: () {
-                _updateTicketStatus('Under Progress');
-              },
-              icon: Icon(
-                Icons.update, // Icon for under progress
-                color: Colors.black,
-              ),
-              label: Text(
-                'Under Progress',
-                style: TextStyle(color: Colors.black),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orangeAccent,
-              ),
+  Widget _buildBottomActionBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          TextButton.icon(
+            onPressed: () async {
+              await _reassignTicket(); // Trigger the reassignment when button is clicked
+            },
+            icon: Icon(Icons.person_add_alt, color: Colors.green),
+            label: Text(
+              'Reassign Ticket',
+              style: TextStyle(color: Colors.green),
             ),
-            // Close Ticket Button with Icon
-            ElevatedButton.icon(
-              onPressed: () {
-                _updateTicketStatus('Closed');
-              },
-              icon: Icon(
-                Icons.close, // Icon for closing the ticket
-                color: Colors.black,
-              ),
-              label: Text(
-                'Close Ticket',
-                style: TextStyle(color: Colors.black),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-              ),
-            ),
-            // Show Support button only for Department Heads and Members
-            if ((userRole == 'DepartmentHead' || userRole == 'Member') &&
-                userDepartment != 'Admin' && userDepartment != 'Support')
-              ElevatedButton.icon(
-                onPressed: _openSupport, // Functionality for support button
-                icon: Icon(
-                  Icons.support_agent, // Support icon
-                  color: Colors.black,
-                ),
-                label: Text(
-                  'Support',
-                  style: TextStyle(color: Colors.black),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                ),
-              ),
-          ],
-        ),
+          ),
+
+          // Dropdown to select user to reassign the ticket
+          DropdownButton<String>(
+            hint: Text(_selectedUser != null ? 'Assigned to $_selectedUser' : 'Select a user'), // Show selected user
+            items: _users.map<DropdownMenuItem<String>>((user) {
+              return DropdownMenuItem<String>(
+                value: user['email'],
+                child: Text('${user['name']} (${user['email']})'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedUser = value; // Update the selected user
+              });
+            },
+            value: _selectedUser, // Show selected value in dropdown
+          ),
+        ],
       ),
     );
   }
 
-  void _openSupport() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Support Options'),
-          content: Text('Please select an option:'),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                // Update the ticket in Firestore to route it to Support
-                try {
-                  await FirebaseFirestore.instance
-                      .collection('tickets')
-                      .doc(widget.ticketId) // Assuming widget.ticketId holds the ticket ID
-                      .update({
-                    'department': 'Support', // Reassign to Support department
-                    'assignedTo': null, // Optionally, clear assigned user
-                    'status': 'Reassigned to Support', // Update status
-                  });
-
-                  // Print log or perform additional logic if needed
-                  print("Ticket reassigned to Support.");
-
-                  // Remove the ticket from the user's screen by navigating back
-                  Navigator.of(context).pop(); // Close the dialog
-                  Navigator.of(context).pop(); // Navigate back to remove the ticket from view
-                } catch (e) {
-                  print("Failed to reassign ticket: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to submit request. Please try again.')),
-                  );
-                }
-              },
-              child: Text('Submit a Request'),
-            ),
-            TextButton(
-              onPressed: () {
-                print("FAQ opened");
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('View FAQ'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('Cancel'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }
