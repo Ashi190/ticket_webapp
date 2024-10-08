@@ -1,94 +1,84 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as Path;
 
 class ProfileScreen extends StatefulWidget {
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  File? _imageFile;
-  bool _isUploading = false;
-  final ImagePicker _picker = ImagePicker();
+class _ProfileScreenState extends State<ProfileScreen> {
+  PlatformFile? _selectedImageFile; // Store the selected image
+  String? _uploadedImageUrl; // Store the uploaded image URL
+  String? _savedImageUrl; // Store the profile image URL fetched from Firestore
 
   @override
   void initState() {
     super.initState();
-
-    _controller = AnimationController(
-      duration: Duration(seconds: 1),
-      vsync: this,
-    )..forward();
-
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
-    );
-    _slideAnimation = Tween<Offset>(begin: Offset(0, 0.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _fetchProfileImage(); // Fetch the profile image when the screen loads
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  // Function to pick an image from the gallery or camera
-  Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source);
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-      _uploadImage();
+  // Function to fetch the profile image URL from Firestore
+  Future<void> _fetchProfileImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.email).get();
+      if (doc.exists) {
+        setState(() {
+          _savedImageUrl = doc['profileImageUrl']; // Fetch the saved image URL from Firestore
+        });
+      }
     }
   }
 
-  // Function to upload image to Firebase Storage and save URL in Firestore
-  Future<void> _uploadImage() async {
-    if (_imageFile == null) return;
-
-    setState(() {
-      _isUploading = true;
-    });
-
+  // Function to pick an image
+  Future<void> _pickImage() async {
     try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final pickedFile = result.files.first;
+        setState(() {
+          _selectedImageFile = pickedFile; // Store selected image
+        });
+        _uploadImage(pickedFile); // Upload the image
+      }
+    } catch (e) {
+      print("Error picking image: ${e.toString()}");
+    }
+  }
+
+  // Function to upload image to Firebase Storage and save the URL in Firestore
+  Future<void> _uploadImage(PlatformFile pickedFile) async {
+    try {
+      if (pickedFile.bytes == null) return;
+
       final user = FirebaseAuth.instance.currentUser;
-      final fileName = Path.basename(_imageFile!.path);
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('user_profiles/${user!.uid}/$fileName');
+      final storageRef = FirebaseStorage.instance.ref().child('user_profiles/${user!.uid}/${pickedFile.name}');
+      UploadTask uploadTask = storageRef.putData(pickedFile.bytes!);
 
-      // Upload image
-      await storageRef.putFile(_imageFile!);
+      TaskSnapshot snapshot = await uploadTask.whenComplete(() {});
+      String downloadUrl = await snapshot.ref.getDownloadURL(); // Get download URL of uploaded image
 
-      // Get the download URL
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      // Update Firestore with the image URL
+      // Save the image URL in Firestore
       await FirebaseFirestore.instance.collection('users').doc(user.email).update({
         'profileImageUrl': downloadUrl,
       });
 
       setState(() {
-        _isUploading = false;
+        _uploadedImageUrl = downloadUrl; // Update UI with the new image URL
+        _savedImageUrl = downloadUrl; // Persist the image URL
       });
 
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Profile image updated successfully!')));
     } catch (e) {
-      setState(() {
-        _isUploading = false;
-      });
+      print("Error uploading image: $e");
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
     }
   }
@@ -152,15 +142,53 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   Positioned(
                     top: 110, // This ensures the profile picture overlaps with the cover
                     left: 20,
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundImage: _imageFile != null
-                          ? FileImage(_imageFile!)
-                          : userData['profileImageUrl'] != null
-                          ? NetworkImage(userData['profileImageUrl'])
-                          : AssetImage('assets/images/default_avatar.gif') as ImageProvider,
+                    child: Stack(
+                      children: [
+                        // CircleAvatar with the user's profile picture
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.grey.shade200, // Optional: to add a background color to CircleAvatar
+                          child: ClipOval(
+                            child: _savedImageUrl != null
+                                ? Image.network(
+                              _savedImageUrl!,
+                              fit: BoxFit.cover,
+                              width: 100,
+                              height: 100,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset('assets/images/default_avatar.gif',
+                                  fit: BoxFit.cover,
+                                  width: 100,
+                                  height: 100,
+                                );
+                              },
+                            )
+                                : Image.asset('assets/images/default_avatar.gif',
+                              fit: BoxFit.cover,
+                              width: 100,
+                              height: 100,
+                            ),
+                          ),
+                        ),
+                        // Camera icon positioned at the bottom-right of the CircleAvatar
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: () {
+                              _pickImage(); // Pick image from the gallery
+                            },
+                            child: CircleAvatar(
+                              radius: 15,
+                              backgroundColor: Colors.white,
+                              child: Icon(Icons.camera_alt, color: Colors.blueAccent, size: 18),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+
                   Positioned(
                     top: 160, // Adjusted to be below the avatar
                     left: 150, // Adjust according to your layout
@@ -199,30 +227,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                         _buildProfileInfo('User Id', userData['userId'] ?? '000000000'),
                         _buildProfileInfo('Role', userData['role'] ?? '000000000'),
                         _buildProfileInfo('Email', userData['email'] ?? 'example@example.com'),
-                        _buildProfileInfo('Phone No.', userData['phone'] ?? '0000000000'),
+                        //  _buildProfileInfo('Phone No.', userData['phone'] ?? '0000000000'),
                         SizedBox(height: 20),
                         Center(
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              // Edit Button
-                              // Edit Button
-                              ElevatedButton(
-                                onPressed: () {},
-                                style: ElevatedButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(30),
-                                    side: BorderSide(color: Colors.blueAccent), // Add border to match the color
-                                  ),
-                                  backgroundColor: Colors.transparent, // Background matching with normal background
-                                  elevation: 0, // Remove shadow
-                                ),
-                                child: Text(
-                                  'Edit',
-                                  style: TextStyle(fontSize: 18, color: Colors.blueAccent),
-                                ),
-                              ),
+
                               SizedBox(width: 10),
                               // Logout Button with Confirmation Dialog
                               ElevatedButton(
@@ -255,6 +266,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       ),
     );
   }
+
   // Function to show the logout confirmation dialog
   void _showLogoutConfirmationDialog(BuildContext context) {
     showDialog(
@@ -282,8 +294,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       },
     );
   }
-
-
 
   Widget _buildProfileInfo(String title, String value) {
     return Padding(

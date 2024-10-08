@@ -74,7 +74,9 @@ class _TicketListScreenState extends State<TicketListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('My Tickets')),
+      appBar: AppBar(title: Text('My Tickets'),
+        automaticallyImplyLeading: false, // This removes the back button
+      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _getTicketsStream(),
         builder: (context, snapshot) {

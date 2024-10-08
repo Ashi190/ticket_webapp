@@ -148,6 +148,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(fontSize: 20),
         ),
         backgroundColor: Colors.white54,
+        automaticallyImplyLeading: false, // This removes the back button
         actions: [
           if (_userDepartment == 'Admin' || _userDepartment == 'Support')
             IconButton(

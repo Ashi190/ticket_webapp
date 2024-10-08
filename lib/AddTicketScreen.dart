@@ -700,6 +700,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       appBar: AppBar(
         title: Text('Add Ticket', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
+        automaticallyImplyLeading: false, // This removes the back button
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

@@ -105,7 +105,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Sign Up')),
+      appBar: AppBar(
+        title: Text('Sign Up', style: TextStyle(color: Color(0xFF5B4636))),
+        backgroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Color(0xFF5B4636)), // Brownish icon
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -116,10 +120,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               controller: _nameController,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.8),
+                fillColor: Color(0xFFF7F5F2), // Light beige color for the background
                 labelText: 'Name',
-                labelStyle: TextStyle(color: Colors.blue),
-                prefixIcon: Icon(Icons.person, color: Colors.blue),
+                labelStyle: TextStyle(color: Color(0xFF6E7C56)), // Greenish color for labels
+                prefixIcon: Icon(Icons.person, color: Color(0xFF6E7C56)), // Greenish icon
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0),
                   borderSide: BorderSide.none,
@@ -133,10 +137,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               controller: _emailController,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.8),
+                fillColor: Color(0xFFF7F5F2),
                 labelText: 'Email',
-                labelStyle: TextStyle(color: Colors.blue),
-                prefixIcon: Icon(Icons.email, color: Colors.blue),
+                labelStyle: TextStyle(color: Color(0xFF6E7C56)),
+                prefixIcon: Icon(Icons.email, color: Color(0xFF6E7C56)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0),
                   borderSide: BorderSide.none,
@@ -151,10 +155,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
               obscureText: true,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.8),
+                fillColor: Color(0xFFF7F5F2),
                 labelText: 'Password',
-                labelStyle: TextStyle(color: Colors.blue),
-                prefixIcon: Icon(Icons.lock, color: Colors.blue),
+                labelStyle: TextStyle(color: Color(0xFF6E7C56)),
+                prefixIcon: Icon(Icons.lock, color: Color(0xFF6E7C56)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0),
                   borderSide: BorderSide.none,
@@ -179,9 +183,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               },
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.8),
+                fillColor: Color(0xFFF7F5F2),
                 labelText: 'Select Role',
-                labelStyle: TextStyle(color: Colors.blue),
+                labelStyle: TextStyle(color: Color(0xFF6E7C56)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0),
                   borderSide: BorderSide.none,
@@ -206,9 +210,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
               },
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.8),
+                fillColor: Color(0xFFF7F5F2),
                 labelText: 'Select Department',
-                labelStyle: TextStyle(color: Colors.blue),
+                labelStyle: TextStyle(color: Color(0xFF6E7C56)),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30.0),
                   borderSide: BorderSide.none,
@@ -225,7 +229,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: Color(0xFF5B4636), // Brownish button color
               ),
               child: Text(
                 'Sign Up',
