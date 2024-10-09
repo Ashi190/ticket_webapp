@@ -459,12 +459,10 @@ Padding(
 padding: const EdgeInsets.all(16.0),
 child: Row(
 children: [
-CircleAvatar(
-backgroundImage: NetworkImage(
-'https://via.placeholder.com/150', // Example Avatar, replace with actual image URL.
-),
-radius: 25,
-),
+  CircleAvatar(
+    backgroundImage: AssetImage('assets/images/chat_support.webp'), // Use AssetImage for local image
+    radius: 25,
+  ),
 SizedBox(width: 10),
 Column(
 crossAxisAlignment: CrossAxisAlignment.start,

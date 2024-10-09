@@ -110,6 +110,7 @@ flutter:
     - assets/images/background.jpeg
     - assets/images/default_avatar.gif
     - assets/images/Rectangle128.jpg
+    - assets/images/chat_support.webp
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
