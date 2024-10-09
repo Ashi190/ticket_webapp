@@ -2,11 +2,13 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:html' as html;
 import 'dart:typed_data';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:intl/intl.dart';
 
 import 'FullScreenImage.dart';
 
@@ -26,6 +28,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   String? userRole; // Made nullable
   String? userDepartment;
 
+  bool _isEmojiVisible = false; // To track if the emoji picker is visible
+  FocusNode _focusNode = FocusNode(); // To handle keyboard focus
+
   // final ImagePicker _picker = ImagePicker();
   // final TextEditingController _nameController = TextEditingController();
   final TextEditingController _replyController = TextEditingController();
@@ -39,10 +44,19 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   bool _isUserListInitialized = false; // Flag to check if user list is initialized
   String? _selectedUser;
   late List<Map<String, dynamic>> _users = []; // Store both name and email
+
   @override
   void initState() {
     super.initState();
     _fetchTicketData();
+    // Hide the emoji picker when the user starts typing
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        setState(() {
+          _isEmojiVisible = false;
+        });
+      }
+    });
   }
 
   Future<void> _fetchTicketData() async {
@@ -301,7 +315,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Ticket Details'),
-        backgroundColor: Colors.teal.shade800,
+        backgroundColor: Colors.white38,
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -411,7 +425,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     );
   }
 
-  // Chat Section UI with logic from backend and message retrieval.
   Widget _buildChatSection() {
     return Expanded(
       child: Card(
@@ -445,13 +458,14 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
               ),
             ),
             Divider(),
+
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('tickets')
                     .doc(widget.ticketId)
                     .collection('messages')
-                    .orderBy('timestamp', descending: true)
+                    .orderBy('timestamp', descending: true) // Sorting by timestamp
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
@@ -462,11 +476,11 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
                   return ListView.builder(
                     padding: const EdgeInsets.all(8.0),
+                    reverse: true, // This ensures new messages appear at the bottom
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
-                      final message =
-                      messages[index].data() as Map<String, dynamic>;
-                      return _buildChatBubble(message as Map<String, dynamic>); // Pass the message map
+                      final message = messages[index].data() as Map<String, dynamic>;
+                      return _buildChatBubble(message as Map<String, dynamic>);
                     },
                   );
                 },
@@ -479,9 +493,20 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   }
 
 
-// Function to build chat bubble with styling
   Widget _buildChatBubble(Map<String, dynamic> message) {
-    bool isMe = message['sender'] == 'email'; // Logic for identifying sender
+    bool isMe = message['sender'] == FirebaseAuth.instance.currentUser?.email;
+
+    // Extract timestamp and handle null case
+    Timestamp? timestamp = message['timestamp'];
+    String formattedTime = '';
+
+    // Check if timestamp is not null, then format it
+    if (timestamp != null) {
+      DateTime dateTime = timestamp.toDate(); // Convert Firestore Timestamp to DateTime
+      formattedTime = DateFormat('hh:mm a').format(dateTime); // Format the time as hh:mm AM/PM
+    } else {
+      formattedTime = 'No time available'; // Placeholder for missing timestamps
+    }
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -493,15 +518,25 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
-          crossAxisAlignment:
-          isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            // Display the message text if available
+            // Display the sender's email or 'System' for the image_url
+            Text(
+              message['sender'] ?? 'Unknown Sender',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isMe ? Colors.white : Colors.black,
+              ),
+            ),
+            SizedBox(height: 5), // Spacing between sender and message
+
+            // Show the message text, if available
             if (message['message'] != null && message['message'].isNotEmpty)
               Text(
                 message['message'],
                 style: TextStyle(
-                    color: isMe ? Colors.white : Colors.black),
+                  color: isMe ? Colors.white : Colors.black,
+                ),
               ),
             SizedBox(height: 5),
 
@@ -509,7 +544,6 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             if (message['imageUrl'] != null && message['imageUrl'].isNotEmpty)
               GestureDetector(
                 onTap: () {
-                  // Optional: Display the image in full-screen view
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -526,6 +560,16 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                   fit: BoxFit.cover,
                 ),
               ),
+            SizedBox(height: 5),
+
+            // Display the time below the message
+            Text(
+              formattedTime, // Show formatted time
+              style: TextStyle(
+                fontSize: 12,
+                color: isMe ? Colors.white70 : Colors.black54,
+              ),
+            ),
           ],
         ),
       ),
@@ -533,52 +577,101 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
   }
 
 
+
+
+
+
+
 // Input section with send message functionality
+  // Input section with send message functionality
   Widget _buildMessageInputSection() {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Row(
-          children: [
-            // Pin Icon for attaching images
-            IconButton(
-              icon: Icon(Icons.attach_file, color: Colors.teal.shade800),
-              onPressed: () async {
-                await _pickImage(); // Open the image picker when pin is clicked
-              },
-            ),
-            SizedBox(width: 10),
-
-            Icon(Icons.emoji_emotions, color: Colors.teal.shade800),
-            SizedBox(width: 10),
-
-            // Text Input for message
-            Expanded(
-              child: TextField(
-                controller: _replyController,
-                decoration: InputDecoration(
-                  hintText: 'Enter Your Message...',
-                  border: InputBorder.none,
+    return Column(
+      children: [
+        Card(
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              children: [
+                // Pin Icon for attaching images
+                IconButton(
+                  icon: Icon(Icons.attach_file, color: Colors.teal.shade800),
+                  onPressed: () async {
+                    await _pickImage(); // Open the image picker when pin is clicked
+                  },
                 ),
+                SizedBox(width: 10),
+
+                // Emoji Icon
+                IconButton(
+                  icon: Icon(Icons.emoji_emotions, color: Colors.teal.shade800),
+                  onPressed: () {
+                    setState(() {
+                      _isEmojiVisible = !_isEmojiVisible; // Toggle emoji visibility
+                      if (_isEmojiVisible) {
+                        FocusScope.of(context).unfocus(); // Hide the keyboard if the emoji picker is opened
+                      } else {
+                        _focusNode.requestFocus(); // Bring back the keyboard if emoji picker is closed
+                      }
+                    });
+                  },
+                ),
+                SizedBox(width: 10),
+
+                // Text Input for message
+                Expanded(
+                  child: TextField(
+                    controller: _replyController,
+                    focusNode: _focusNode, // Assign the focus node to the text field
+                    decoration: InputDecoration(
+                      hintText: 'Enter Your Message...',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+
+                // Send Button
+                IconButton(
+                  onPressed: () async {
+                    if (_replyController.text.isNotEmpty || _image != null) {
+                      await _sendMessage(); // Send message with text and image if available
+                    }
+                  },
+                  icon: Icon(Icons.send, color: Colors.blueAccent),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // Emoji picker widget
+        Offstage(
+          offstage: !_isEmojiVisible, // Show/Hide based on _isEmojiVisible
+          child: SizedBox(
+            height: 250,
+            child: EmojiPicker(
+              onEmojiSelected: (category, emoji) {
+                _replyController.text += emoji.emoji; // Add the selected emoji to the text field
+              },
+              config: Config(
+                columns: 7,
+                emojiSizeMax: 32.0, // Adjust emoji size
+                verticalSpacing: 0,
+                horizontalSpacing: 0,
+                initCategory: Category.SMILEYS,
+                bgColor: const Color(0xFFF2F2F2),
+                indicatorColor: Colors.teal.shade800,
+                iconColor: Colors.grey,
+                iconColorSelected: Colors.teal.shade800,
+                backspaceColor: Colors.teal.shade800,
               ),
             ),
-
-            // Send Button
-            IconButton(
-              onPressed: () async {
-                if (_replyController.text.isNotEmpty || _image != null) {
-                  await _sendMessage(); // Send message with text and image if available
-                }
-              },
-              icon: Icon(Icons.send, color: Colors.blueAccent),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -686,9 +779,10 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Reassign Ticket button
           TextButton.icon(
             onPressed: () async {
-              await _reassignTicket(); // Trigger the reassignment when button is clicked
+              await _reassignTicket(); // Trigger the reassignment when the button is clicked
             },
             icon: Icon(Icons.person_add_alt, color: Colors.green),
             label: Text(
@@ -713,9 +807,74 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
             },
             value: _selectedUser, // Show selected value in dropdown
           ),
+
+          // Support Icon (Visible to everyone except Admin and Support)
+          if (userDepartment != 'Admin' && userDepartment != 'Support') // Ensure it's hidden only for Admin and Support
+            GestureDetector(
+              onTap: () async {
+                await _assignTicketToSupport(); // Trigger the support reassignment when the icon is clicked
+              },
+              child: Icon(
+                Icons.support_agent, // Icon for support
+                color: Colors.teal.shade800, // Match the icon color with the theme
+                size: 30, // Adjust size if needed
+              ),
+            ),
+
+          // Under Progress button
+          ElevatedButton(
+            onPressed: () async {
+              await _updateTicketStatus('Under Progress'); // Update the status to 'Under Progress'
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white38, // Button background color matching the theme
+            ),
+            child: Text(
+              'Under Progress',
+              style: TextStyle(color: Colors.black),
+            ),
+          ),
+
+          // Close button (Visible only to Admin and Support)
+          if (userDepartment == 'Admin' || userDepartment == 'Support') // Visible only for Admin and Support
+            ElevatedButton(
+              onPressed: () async {
+                await _updateTicketStatus('Close'); // Update the status to 'Close'
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white38, // Button background color matching the theme
+              ),
+              child: Text(
+                'Close',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
         ],
       ),
     );
   }
+
+// Method to assign the ticket to Support
+  Future<void> _assignTicketToSupport() async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('tickets')
+          .doc(widget.ticketId)
+          .update({
+        'assignedTo': 'support@company.com', // Assign to the support team's email
+        'status': 'Reassigned to Support',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ticket successfully reassigned to Support.')),
+      );
+    } catch (error) {
+      print('Error reassigning to support: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to reassign the ticket to Support.')),
+      );
+    }
+  }
+
 
 }

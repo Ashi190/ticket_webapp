@@ -43,7 +43,7 @@ dependencies:
   firebase_auth: ^4.7.0  # Firebase Authentication
   firebase_storage: ^11.5.0  # Firebase Cloud Storage
   firebase_messaging: ^14.0.0  # Firebase Cloud Messaging for push notifications
-
+  rxdart: ^0.27.3
   # Google Play Services availability check
   google_api_availability: ^3.0.0
 
@@ -73,6 +73,10 @@ dependencies:
 
   # Flutter Charts for Time Series, Bar Charts, etc.
   charts_flutter: ^0.12.0  # Chart library for time series charts
+
+  # Emoji Picker Flutter
+  emoji_picker_flutter: ^1.1.3
+
 
 
 
