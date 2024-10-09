@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:rxdart/rxdart.dart';
 import 'TicketDetailScreen.dart';
 
 class TicketListScreen extends StatefulWidget {
@@ -55,21 +56,81 @@ class _TicketListScreenState extends State<TicketListScreen> {
     }
   }
 
-  Stream<QuerySnapshot> _getTicketsStream() {
+
+
+  Stream<List<DocumentSnapshot>> _getTicketsStream() {
+    // If the user is Admin or Support, they can see all tickets
     if (userDepartment == 'Admin' || userDepartment == 'Support') {
-      return FirebaseFirestore.instance.collection('tickets').snapshots();
-    } else if (userRole == 'DepartmentHead') {
-      return FirebaseFirestore.instance
+      Stream<QuerySnapshot> allTicketsStream = FirebaseFirestore.instance
           .collection('tickets')
-          .where('department', isEqualTo: userDepartment)
           .snapshots();
-    } else {
-      return FirebaseFirestore.instance
+
+      return allTicketsStream.map((snapshot) {
+        return snapshot.docs; // Directly return all tickets
+      });
+    }
+
+    // For Department Heads, they can see:
+    // 1. Tickets assigned to them
+    // 2. Tickets they created
+    // 3. Tickets of their department
+    if (userRole == 'DepartmentHead') {
+      // Stream for tickets assigned to the Department Head
+      Stream<QuerySnapshot> assignedTicketsStream = FirebaseFirestore.instance
           .collection('tickets')
           .where('assignedTo', isEqualTo: userEmail)
           .snapshots();
+
+      // Stream for tickets created by the Department Head (agent_email matches userEmail)
+      Stream<QuerySnapshot> raisedTicketsStream = FirebaseFirestore.instance
+          .collection('tickets')
+          .where('agent_email', isEqualTo: userEmail)
+          .snapshots();
+
+      // Stream for tickets from the same department
+      Stream<QuerySnapshot> departmentTicketsStream = FirebaseFirestore.instance
+          .collection('tickets')
+          .where('department', isEqualTo: userDepartment)
+          .snapshots();
+
+      // Combine all three streams and return
+      return CombineLatestStream.list([assignedTicketsStream, raisedTicketsStream, departmentTicketsStream]).map((snapshots) {
+        final List<DocumentSnapshot> combinedTickets = [];
+
+        for (var snapshot in snapshots) {
+          combinedTickets.addAll(snapshot.docs);
+        }
+
+        // Use a Set to remove duplicates
+        return combinedTickets.toSet().toList();
+      });
     }
+
+    // For Members, show tickets assigned to them or created by them
+    Stream<QuerySnapshot> assignedTicketsStream = FirebaseFirestore.instance
+        .collection('tickets')
+        .where('assignedTo', isEqualTo: userEmail)
+        .snapshots();
+
+    Stream<QuerySnapshot> raisedTicketsStream = FirebaseFirestore.instance
+        .collection('tickets')
+        .where('agent_email', isEqualTo: userEmail)
+        .snapshots();
+
+    return CombineLatestStream.list([assignedTicketsStream, raisedTicketsStream]).map((snapshots) {
+      final List<DocumentSnapshot> combinedTickets = [];
+
+      for (var snapshot in snapshots) {
+        combinedTickets.addAll(snapshot.docs);
+      }
+
+      return combinedTickets.toSet().toList();
+    });
   }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -77,108 +138,107 @@ class _TicketListScreenState extends State<TicketListScreen> {
       appBar: AppBar(title: Text('My Tickets'),
         automaticallyImplyLeading: false, // This removes the back button
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _getTicketsStream(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
-          }
-          final tickets = snapshot.data!.docs;
-          if (tickets.isEmpty) {
-            return Center(child: Text('No tickets available.'));
-          }
+        body: StreamBuilder<List<DocumentSnapshot>>(
+          stream: _getTicketsStream(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return Center(child: CircularProgressIndicator());
+            }
 
-          // List to store tickets and their remaining time
-          List<Map<String, dynamic>> ticketsWithRemainingTime = [];
+            final tickets = snapshot.data!; // This is a combined list of raised and assigned tickets
 
-          // Loop through each ticket and calculate remaining time
-          for (var ticketDoc in tickets) {
-            final ticket = ticketDoc.data() as Map<String, dynamic>;
+            if (tickets.isEmpty) {
+              return Center(child: Text('No tickets available.'));
+            }
 
-            if (ticket['timeline_start'] != null && ticket['timeline_duration'] != null) {
-              final Timestamp timelineStartTimestamp = ticket['timeline_start'];
-              final DateTime timelineStart = timelineStartTimestamp.toDate();
-              final int timelineDuration = ticket['timeline_duration'];
+            // List to store tickets and their remaining time
+            List<Map<String, dynamic>> ticketsWithRemainingTime = [];
 
-              final int remainingTime = _getUpdatedRemainingTime(timelineStart, timelineDuration);
+            for (var ticketDoc in tickets) {
+              final ticket = ticketDoc.data() as Map<String, dynamic>;
 
-              // Add to the list
-              ticketsWithRemainingTime.add({
-                'ticket': ticket,
-                'ticketId': ticketDoc.id,
-                'remainingTime': remainingTime,
-                'timelineDuration': timelineDuration,
-                'color': _getTimelineColor(remainingTime, timelineDuration), // Add color to sorting logic
-              });
+              if (ticket['timeline_start'] != null && ticket['timeline_duration'] != null) {
+                final Timestamp timelineStartTimestamp = ticket['timeline_start'];
+                final DateTime timelineStart = timelineStartTimestamp.toDate();
+                final int timelineDuration = ticket['timeline_duration'];
 
-              // Store the remaining time in the state and start the timer
-              if (!remainingTimes.containsKey(ticketDoc.id)) {
-                remainingTimes[ticketDoc.id] = remainingTime;
-                _startTimer(ticketDoc.id, remainingTime);
+                final int remainingTime = _getUpdatedRemainingTime(timelineStart, timelineDuration);
+
+                ticketsWithRemainingTime.add({
+                  'ticket': ticket,
+                  'ticketId': ticketDoc.id,
+                  'remainingTime': remainingTime,
+                  'timelineDuration': timelineDuration,
+                  'color': _getTimelineColor(remainingTime, timelineDuration),
+                });
+
+                if (!remainingTimes.containsKey(ticketDoc.id)) {
+                  remainingTimes[ticketDoc.id] = remainingTime;
+                  _startTimer(ticketDoc.id, remainingTime);
+                }
               }
             }
-          }
 
-          // Sort by color and then by remaining time (ascending)
-          ticketsWithRemainingTime.sort((a, b) {
-            int colorWeightA = _getColorWeight(a['color']);
-            int colorWeightB = _getColorWeight(b['color']);
+            ticketsWithRemainingTime.sort((a, b) {
+              int colorWeightA = _getColorWeight(a['color']);
+              int colorWeightB = _getColorWeight(b['color']);
 
-            if (colorWeightA != colorWeightB) {
-              return colorWeightA.compareTo(colorWeightB); // Sort by color
-            } else {
-              return a['remainingTime'].compareTo(b['remainingTime']); // Sort by remaining time within the same color group
-            }
-          });
+              if (colorWeightA != colorWeightB) {
+                return colorWeightA.compareTo(colorWeightB);
+              } else {
+                return a['remainingTime'].compareTo(b['remainingTime']);
+              }
+            });
 
-          return ListView.builder(
-            itemCount: ticketsWithRemainingTime.length,
-            itemBuilder: (context, index) {
-              final ticketData = ticketsWithRemainingTime[index];
-              final ticket = ticketData['ticket'];
-              final int remainingTime = remainingTimes[ticketData['ticketId']] ?? ticketData['remainingTime'];
-              final int timelineDuration = ticketData['timelineDuration'];
-              final Color color = ticketData['color'];
+            return ListView.builder(
+              itemCount: ticketsWithRemainingTime.length,
+              itemBuilder: (context, index) {
+                final ticketData = ticketsWithRemainingTime[index];
+                final ticket = ticketData['ticket'];
+                final int remainingTime = remainingTimes[ticketData['ticketId']] ?? ticketData['remainingTime'];
+                final int timelineDuration = ticketData['timelineDuration'];
+                final Color color = ticketData['color'];
 
-              return Card(
-                elevation: 2,
-                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                child: ListTile(
-                  leading: Icon(Icons.receipt, color: Colors.teal),
-                  title: Text(ticket['subject'], style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Department: ${ticket['department']}'),
-                      Text('Ticket ID: ${ticketData['ticketId']}'),
-                      _buildTimelineStatus(remainingTime, timelineDuration),
-                    ],
-                  ),
-                  trailing: Container(
-                    padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: ticket['status'] == 'Open' ? Colors.green : Colors.red,
-                      borderRadius: BorderRadius.circular(12),
+                return Card(
+                  elevation: 2,
+                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: ListTile(
+                    leading: Icon(Icons.receipt, color: Colors.teal),
+                    title: Text(ticket['subject'], style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Department: ${ticket['department']}'),
+                        Text('Ticket ID: ${ticketData['ticketId']}'),
+                        _buildTimelineStatus(remainingTime, timelineDuration),
+                      ],
                     ),
-                    child: Text(
-                      ticket['status'],
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => TicketDetailScreen(ticketId: ticketData['ticketId']),
+                    trailing: Container(
+                      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: ticket['status'] == 'Open' ? Colors.green : Colors.red,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    );
-                  },
-                ),
-              );
-            },
-          );
-        },
-      ),
+                      child: Text(
+                        ticket['status'],
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TicketDetailScreen(ticketId: ticketData['ticketId']),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          },
+        )
+
     );
   }
 
@@ -251,7 +311,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
     if (timeFraction > 0.5) {
       return Colors.green; // More than 50% of the time left
     } else if (timeFraction > 0.25) {
-      return Colors.yellow; // Between 25% and 50% of the time left
+      return Colors.orangeAccent; // Between 25% and 50% of the time left
     } else {
       return Colors.red; // Less than 25% of the time left
     }
