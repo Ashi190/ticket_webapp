@@ -175,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     );
   }*/
   // Method to send password reset email using Firebase
-  Future<void> _sendPasswordResetEmail() async {
+  Future<void> _sendPasswordResetEmail(String email) async {
     String email = _emailController.text;
 
     if (email.isNotEmpty) {
@@ -195,6 +195,47 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       );
     }
   }
+
+  // Show Forgot Password Dialog
+  void _showForgotPasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Forgot Password'),
+          content: TextField(
+            controller: _emailController,
+            decoration: InputDecoration(
+              labelText: 'Enter your email',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (_emailController.text.isNotEmpty) {
+                  _sendPasswordResetEmail(_emailController.text);
+                  Navigator.of(context).pop(); // Close dialog after sending email
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please enter a valid email address')),
+                  );
+                }
+              },
+              child: Text('Send Reset Link'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -330,7 +371,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     // Forgot Password
                     TextButton(
                       onPressed: () {
-                    //    _showForgotPasswordDialog(); // Open dialog to input email and send OTP
+                       _showForgotPasswordDialog(); // Open dialog to input email and send OTP
                       },
                       child: Text(
                         'Forgot Password?',
