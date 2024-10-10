@@ -701,9 +701,15 @@ decoration: InputDecoration(
 hintText: 'Enter Your Message...',
 border: InputBorder.none,
 ),
-),
-),
 
+  // Handle pressing the Enter key
+  onSubmitted: (value) async {
+    if (value.isNotEmpty || _image != null) {
+      await _sendMessage(); // Reuse the same logic for sending the message
+    }
+  },
+),
+  ),
 // Send Button
 IconButton(
 onPressed: () async {
