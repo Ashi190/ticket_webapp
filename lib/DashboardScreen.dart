@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Firebase Firestore for ticket data
 import 'TicketStatusScreen.dart'; // Import the new screen
@@ -59,30 +60,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
   };
 
   bool _isLoading = true;
-
+  String? _userDepartment; // This will store the user's department
+  String? _userRole;
+  String? _userEmail;
 
   @override
   void initState() {
     super.initState();
+    _fetchUserDetails();
     _fetchTicketCounts(); // Initially fetch all tickets
   }
 
-  // Fetch ticket counts from Firestore for each status based on selected department
+  Future<void> _fetchUserDetails() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.email).get();
+        if (userDoc.exists) {
+          setState(() {
+            _userRole = userDoc.data()?['role'] ?? '';
+            _userDepartment = userDoc.data()?['department'] ?? '';
+            _userEmail = user.email ?? '';
+            print('User Role: $_userRole');
+            print('User Department: $_userDepartment');
+          });
+        } else {
+          print('User document does not exist');
+        }
+      } else {
+        print('No user is currently logged in');
+      }
+    } catch (e) {
+      print('Error fetching user details: $e');
+    }
+  }
+  // Fetch ticket counts from Firestore for each status based on user role and department
   Future<void> _fetchTicketCounts() async {
     setState(() {
       _isLoading = true;
     });
 
-    // Firestore query
     Query query = FirebaseFirestore.instance.collection('tickets');
-
-    // Filter by department if a specific department is selected
-    if (_selectedDepartment != 'All') {
-      query = query.where('department', isEqualTo: _selectedDepartment);
-    }
 
     QuerySnapshot querySnapshot = await query.get();
 
+    // Initialize ticket counts for each status
     Map<String, int> ticketCounts = {
       'Open': 0,
       'Closed': 0,
@@ -92,19 +114,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'In Progress': 0,
     };
 
+    // Count tickets by status
     for (var doc in querySnapshot.docs) {
       var data = doc.data() as Map<String, dynamic>;
       String status = data['status'] ?? 'Unknown';
-      if (ticketCounts.containsKey(status)) {
-        ticketCounts[status] = ticketCounts[status]! + 1;
+      String department = data['department'];
+      if(_userDepartment == "Admin" || _userDepartment == "Support"){
+        if (ticketCounts.containsKey(status)) {
+          ticketCounts[status] = ticketCounts[status]! + 1;
+        }
+      }else{
+        if (ticketCounts.containsKey(status)&& department == _userDepartment) {
+          ticketCounts[status] = ticketCounts[status]! + 1;
+        }
       }
+
     }
 
     setState(() {
       _ticketCounts = ticketCounts;
+      print(ticketCounts);
       _isLoading = false;
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -115,14 +148,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(fontSize: 20),
         ),
         backgroundColor: Colors.white54,
+        automaticallyImplyLeading: false, // This removes the back button
         actions: [
-
-          IconButton(
-            icon: Icon(Icons.filter_list),
-            onPressed: () {
-              _showDepartmentFilterDialog(context); // Show department dropdown
-            },
-          ),
+          if (_userDepartment == 'Admin' || _userDepartment == 'Support')
+            IconButton(
+              icon: Icon(Icons.filter_list),
+              onPressed: () {
+                _showFilterDialog(context);
+              },
+            ),
         ],
       ),
       body: SingleChildScrollView(
@@ -136,81 +170,115 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
-            _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : Container(
-              height: 180, // Reduced height for more compact cards
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _ticketStatuses.length, // Number of TicketCards based on the status list
-                itemBuilder: (context, index) {
-                  String status = _ticketStatuses[index];
-                  int count = _ticketCounts[status] ?? 0; // Get the count for this status
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12.0),
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => TicketStatusScreen(
-                              status: _ticketStatuses[index], // Pass status to the next screen
-                            ),
+
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance.collection('tickets').snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                // Initialize counts for each status
+                Map<String, int> ticketCounts = {
+                  'Open': 0,
+                  'Closed': 0,
+                  'Reassigned': 0,
+                  'Reassigned to Support': 0,
+                  'Under Progress': 0,
+                  'In Progress': 0,
+                };
+
+                // Loop through each ticket and count the statuses
+                snapshot.data!.docs.forEach((doc) {
+                  var data = doc.data() as Map<String, dynamic>;
+                  String status = data['status'] ?? 'Unknown';
+                  String department = data['department'] ?? 'Unknown';
+
+                  // Count based on user role and department
+                  if (_userDepartment == "Admin" || _userDepartment == "Support") {
+                    // Admin and Support can see all tickets
+                    if (ticketCounts.containsKey(status)) {
+                      ticketCounts[status] = ticketCounts[status]! + 1;
+                    }
+                  } else if (ticketCounts.containsKey(status) && department == _userDepartment) {
+                    // Non-admin users only see tickets from their own department
+                    ticketCounts[status] = ticketCounts[status]! + 1;
+                  }
+                });
+
+                // Display the TicketCards with up-to-date counts
+                return Container(
+                  height: 180,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _ticketStatuses.length,
+                    itemBuilder: (context, index) {
+                      String status = _ticketStatuses[index];
+                      int count = ticketCounts[status] ?? 0;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TicketStatusScreen(
+                                  status: _ticketStatuses[index],
+                                ),
+                              ),
+                            );
+                          },
+                          child: TicketCard(
+                            ticketTitle: _ticketStatuses[index],
+                            ticketSubtitle: '$count tickets',
+                            status: _ticketStatuses[index],
                           ),
-                        );
-                      },
-                      child: TicketCard(
-                        ticketTitle: _ticketStatuses[index], // Assigning status to title
-                        ticketSubtitle: '$count tickets', // Show ticket count
-                        status: _ticketStatuses[index], // Assigning status to ticket
-                      ),
-                    ),
-                  );
-                },
-              ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
-            SizedBox(height: 30), // Space between ticket list and graph
+            SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
 
-  // Show a dialog with a dropdown to select the department filter
-  void _showDepartmentFilterDialog(BuildContext context) {
+
+  // Method to show department filter dialog with predefined departments
+  void _showFilterDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          title: Text('Filter by Department'),
+          title: Text('Filter by Departments'),
           content: DropdownButton<String>(
             value: _selectedDepartment,
-            onChanged: (String? newValue) {
-              setState(() {
-                _selectedDepartment = newValue!;
-              });
-              _fetchTicketCounts(); // Fetch the tickets for the selected department
-              Navigator.of(context).pop(); // Close the dialog
-            },
-            items: _departments.map((String department) {
+            isExpanded: true,
+            hint: Text('Select Department'),
+            items: _departments.map((department) {
               return DropdownMenuItem<String>(
                 value: department,
                 child: Text(department),
               );
             }).toList(),
+            onChanged: (value) {
+              setState(() {
+                _selectedDepartment = value!;
+              });
+              _fetchTicketCounts(); // Update the counts based on the selected department
+              Navigator.pop(context); // Close the dialog after selection
+            },
           ),
-          actions: [
-            TextButton(
-              child: Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-            ),
-          ],
         );
       },
     );
   }
+
 }
 
 // TicketCard widget (same as before)

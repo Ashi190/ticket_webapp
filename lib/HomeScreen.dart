@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:ticket_ui_test/LoginScreen.dart';
+import 'package:ticket_ui_test/widgets/button_widget.dart';
 import 'DashboardScreen.dart';
 import 'AddTicketScreen.dart';
 import 'AuthProvider.dart';
 import 'ProfileScreen.dart';
 import 'TicketListScreen.dart';
-import 'TicketListScreen.dart' as TicketList;
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -17,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late PageController _pageController; // Add a PageController
+  int _currentIndex = 0; // Track the current screen index
 
   @override
   void initState() {
@@ -35,7 +37,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
-    _pageController = PageController(); // Initialize the PageController
+    _pageController = PageController(
+      initialPage: _currentIndex, // Initialize with the current index
+    );
+
+    // Listen for page changes
+    _pageController.addListener(() {
+      setState(() {
+        _currentIndex = _pageController.page?.round() ?? 0; // Update current index
+      });
+    });
   }
 
   @override
@@ -48,20 +59,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Ticket System"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.account_circle, size: 50),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ProfileScreen()),
-              );
-            },
-          ),
-        ],
-      ),
       body: Consumer<AuthhProvider>(
         builder: (context, authProvider, child) {
           if (!authProvider.isAuthenticated) {
@@ -74,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           } else {
             return Column(
               children: [
+
                 Expanded(
                   child: Row(
                     children: [
@@ -82,67 +80,73 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         child: Container(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Colors.teal.shade600, Colors.tealAccent.shade100],
+                              colors: [
+                                Colors.teal.shade800,
+                                Colors.teal.shade600,
+                              ],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             ),
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(20), // Round the top-right corner
+                              bottomRight: Radius.circular(20), // Round the bottom-right corner
+                            ),
                           ),
+                          padding: EdgeInsets.all(8.0),
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
+                              // mainAxisAlignment: MainAxisAlignment.center,
+                              // crossAxisAlignment: CrossAxisAlignment.center,
                               children: <Widget>[
+                                // Image in the center
+
+                                const SizedBox(height: 40,),
+                                Center(
+                                  child: ClipOval(
+                                    child: Container(
+                                      height: 90, // Height for elliptical shape
+                                      width: 270, // Width for elliptical shape
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.rectangle, // Set the shape to rectangle
+                                        image: DecorationImage(
+                                          image: AssetImage('assets/images/KOC.jpeg'),
+                                          fit: BoxFit.cover, // Ensures image fits the oval shape
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                SizedBox(height: 100),
+
                                 FadeTransition(
                                   opacity: _fadeAnimation,
                                   child: SlideTransition(
                                     position: _slideAnimation,
-                                    child: Text(
-                                      'Welcome to the Ticket System',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                      textAlign: TextAlign.center,
+                                    child: ButtonWidget(
+                                      icon: Icon(Icons.dashboard, color: Colors.white),
+                                      buttonText: 'View Dashboard',
+                                      onPressed: () {
+                                        _pageController.jumpToPage(0); // Navigate to DashboardScreen
+                                      },
+                                      buttonColor: _currentIndex == 0 ? Colors.red : Colors.teal.shade400, // Dynamic color based on current index
                                     ),
                                   ),
                                 ),
                                 SizedBox(height: 10),
+
                                 FadeTransition(
                                   opacity: _fadeAnimation,
                                   child: SlideTransition(
                                     position: _slideAnimation,
-                                    child: Text(
-                                      'What would you like to do?',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.white70,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                                FadeTransition(
-                                  opacity: _fadeAnimation,
-                                  child: SlideTransition(
-                                    position: _slideAnimation,
-                                    child: ElevatedButton(
+                                    child: ButtonWidget(
+                                      buttonText: 'Add New Ticket',
+                                      icon: Icon(Icons.add, color: Colors.white),
                                       onPressed: () {
                                         _pageController.jumpToPage(1); // Navigate to AddTicketScreen
                                       },
-                                      style: ElevatedButton.styleFrom(
-                                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(30),
-                                        ),
-                                        backgroundColor: Colors.teal.shade700,
-                                      ),
-                                      child: Text(
-                                        'Add New Ticket',
-                                        style: TextStyle(fontSize: 12, color: Colors.white),
-                                      ),
+                                      buttonColor: Colors.teal.shade400, // Change button color
                                     ),
                                   ),
                                 ),
@@ -151,63 +155,55 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   opacity: _fadeAnimation,
                                   child: SlideTransition(
                                     position: _slideAnimation,
-                                    child: ElevatedButton(
+                                    child: ButtonWidget(
+                                      buttonText: 'View Tickets',
+                                      icon: Icon(Icons.panorama_fish_eye, color: Colors.white),
                                       onPressed: () {
                                         _pageController.jumpToPage(2); // Navigate to TicketListScreen
                                       },
-                                      style: ElevatedButton.styleFrom(
-                                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(30),
-                                        ),
-                                        backgroundColor: Colors.teal.shade600,
-                                      ),
-                                      child: Text(
-                                        'View Tickets',
-                                        style: TextStyle(fontSize: 12, color: Colors.white),
-                                      ),
+                                      buttonColor: Colors.teal.shade400, // Change button color
                                     ),
                                   ),
                                 ),
                                 SizedBox(height: 10),
+
+                                // Logout button
                                 FadeTransition(
                                   opacity: _fadeAnimation,
                                   child: SlideTransition(
                                     position: _slideAnimation,
-                                    child: ElevatedButton(
+                                    child: ButtonWidget(
+                                      icon: Icon(Icons.logout_sharp, color: Colors.white),
+                                      buttonText: 'Logout',
+
                                       onPressed: () {
-                                        _pageController.jumpToPage(3); // Navigate to DashboardScreen
+                                        _showLogoutConfirmation(context); // Show logout confirmation dialog
                                       },
-                                      style: ElevatedButton.styleFrom(
-                                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(30),
-                                        ),
-                                        backgroundColor: Colors.teal.shade800,
-                                      ),
-                                      child: Text(
-                                        'View Dashboard',
-                                        style: TextStyle(fontSize: 12, color: Colors.white),
-                                      ),
+                                      buttonColor: Colors.teal.shade400, // Logout button color
                                     ),
                                   ),
-                                ),
+                                )
                               ],
                             ),
                           ),
                         ),
                       ),
+
                       Expanded(
                         flex: 4, // Take up more space
                         child: Container(
                           padding: EdgeInsets.all(8),
                           child: PageView(
-                            controller: _pageController, // Use the PageController
+                            controller: _pageController,
+                            // Use the PageController
                             children: [
-                              Center(child: Text("Welcome Screen")), // Placeholder for HomeScreen content
-                              AddTicketScreen(), // AddTicketScreen
-                              TicketListScreen(), // TicketListScreen
-                              DashboardScreen(), // DashboardScreen
+                              DashboardScreen(),
+                              // Open DashboardScreen as the first screen
+                              AddTicketScreen(),
+                              // AddTicketScreen
+                              TicketListScreen(),
+                              // TicketListScreen
+                              // If needed, you can add more screens here
                             ],
                           ),
                         ),
@@ -222,4 +218,37 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Logout"),
+          content: Text("Are you sure you want to log out?"),
+          actions: <Widget>[
+            TextButton(
+              child: Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text("Logout"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                // Navigate to LoginScreen or call the logout function
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LoginScreen(), // Replace with your LoginPage
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }
