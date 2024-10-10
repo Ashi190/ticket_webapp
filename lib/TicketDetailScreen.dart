@@ -368,81 +368,153 @@ bottomNavigationBar: _buildBottomActionBar(),
 );
 }
 
-Widget _buildTicketDetailsBox() {
-return Card(
-elevation: 8,
-shape: RoundedRectangleBorder(
-borderRadius: BorderRadius.circular(10),
-),
-child: Padding(
-padding: const EdgeInsets.all(16.0),
-child: Column(
-crossAxisAlignment: CrossAxisAlignment.start,
-children: [
-Text(
-'TICKET ID : ${widget.ticketId}',
-style: TextStyle(
-fontSize: 20,
-fontWeight: FontWeight.bold,
-color: Colors.teal.shade800,
-),
-),
-Divider(),
-// _buildDetailRow('Contact Name', _ticketData?['agent_name']),
-//  _buildDetailRow('Email', _ticketData?['email']),
-//  _buildDetailRow('Phone', _ticketData?['phone']),
-//  _buildDetailRow('Account Name', _ticketData?['account_name']),
+  Widget _buildTicketDetailsBox() {
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Text(
+                'TICKET ID : ${widget.ticketId}',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal.shade800,
+                ),
+              ),
+            ),
+            Divider(thickness: 1.5),
+            _buildDetailSectionTitle('Ticket Id Details'),
+            _buildDetailsTable(),
+            SizedBox(height: 20),
+            _buildStatusRow(),
+          ],
+        ),
+      ),
+    );
+  }
 
-_buildDetailRow('Agent Name', _ticketData?['agent_name']),
-_buildDetailRow('Subject', _ticketData?['subject']),
-_buildDetailRow('Description', _ticketData?['description']),
-_buildDetailRow('Department', _ticketData?['department']),
-_buildDetailRow('Questionnaire', _ticketData?['questionnaire']),
-_buildDetailRow('Followup Question', _ticketData?['followup_question']),
-SizedBox(height: 20),
-Row(
-children: [
-Text(
-'STATUS:',
-style: TextStyle(
-fontWeight: FontWeight.bold,
-color: Colors.teal.shade800,
-),
-),
-SizedBox(width: 10),
-Chip(
-label: Text(_currentStatus),
-backgroundColor: Colors.orangeAccent,
-),
-],
-),
-],
-),
-),
-);
-}
+// Function to build the table of ticket details
+  Widget _buildDetailsTable() {
+    return Table(
+      columnWidths: {
+        0: FlexColumnWidth(3), // Title column takes up 3 parts
+        1: FlexColumnWidth(4), // Value column takes up 4 parts
+      },
+      border: TableBorder(
+        horizontalInside: BorderSide(
+          width: 1,
+          color: Colors.grey.shade300, // Light grey for the horizontal border
+        ),
+      ),
+      children: [
+        _buildTableRow('Agent Name', _ticketData?['agent_name']),
+        _buildTableRow('Agent Email', _ticketData?['agent_email']),
+        _buildTableRow('Subject', _ticketData?['subject']),
+        _buildTableRow('Description', _ticketData?['description']),
+        _buildTableRow('Department', _ticketData?['department']),
+        _buildTableRow('Questionnaire', _ticketData?['questionnaire']),
+        _buildTableRow('Followup Question', _ticketData?['followup_question']),
+      ],
+    );
+  }
 
-Widget _buildDetailRow(String title, String? value) {
-return Padding(
-padding: const EdgeInsets.symmetric(vertical: 4.0),
-child: Row(
-mainAxisAlignment: MainAxisAlignment.spaceBetween,
-children: [
-Text(
-'$title:',
-style: TextStyle(
-fontWeight: FontWeight.bold,
-color: Colors.teal.shade600,
-),
-),
-Text(
-value ?? 'N/A',
-style: TextStyle(color: Colors.black),
-),
-],
-),
-);
-}
+// Function to create each row in the table
+  TableRow _buildTableRow(String title, String? value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            '$title :',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.teal.shade800,
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            value ?? 'N/A',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+// Function to display status row with a colored chip
+  Widget _buildStatusRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          'STATUS',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.teal.shade800,
+            fontSize: 16,
+          ),
+        ),
+        Chip(
+          label: Text(
+            _currentStatus.toUpperCase(),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          backgroundColor: _getStatusColor(),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        ),
+      ],
+    );
+  }
+
+// Helper to dynamically color status chip
+  Color _getStatusColor() {
+    switch (_currentStatus) {
+      case 'In Progress':
+        return Colors.blueAccent;
+      case 'Under Progress':
+        return Colors.green;
+      case 'Reassigned':
+        return Colors.lime;
+      case 'Close':
+        return Colors.redAccent;
+      default:
+        return Colors.grey;
+    }
+  }
+
+
+// Helper to create the section title, as in the screenshot
+  Widget _buildDetailSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.teal.shade600,
+        ),
+      ),
+    );
+  }
+
+
+
 
 Widget _buildChatSection() {
 return Expanded(
@@ -481,7 +553,19 @@ Divider(),
 if (_ticketData != null) _buildTicketCreationDetails(_ticketData!), // Show the ticket creation details at the top
 
 Expanded(
-child: StreamBuilder<QuerySnapshot>(
+  child: Stack(
+  children: [
+  // Background image
+  Positioned.fill(
+  child: Opacity(
+  opacity: 0.1,  // Adjust the opacity to make it subtle
+  child: Image.asset(
+  'assets/images/chatimagee.jpg',  // Path to your background image
+  fit: BoxFit.cover,  // Ensures the image fits the chat area
+  ),
+  ),
+  ),
+StreamBuilder<QuerySnapshot>(
 stream: FirebaseFirestore.instance
     .collection('tickets')
     .doc(widget.ticketId)
@@ -504,15 +588,17 @@ itemBuilder: (context, index) {
 final message = messages[index].data() as Map<String, dynamic>;
 return _buildChatBubble(message);
 },
-);
-},
-),
-),
-],
-),
-),
-);
-}
+  );
+  },
+  ),
+  ],
+  ),
+  ),
+  ],
+  ),
+  ),
+  );
+  }
 
 // Function to display the ticket creation details (subject, description, image) at the top of the chat
 Widget _buildTicketCreationDetails(Map<String, dynamic> ticketData) {
