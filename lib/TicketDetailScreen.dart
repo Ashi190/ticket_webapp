@@ -527,27 +527,48 @@ child: Column(
 crossAxisAlignment: CrossAxisAlignment.start,
 children: [
 // Chat header with user details
-Padding(
-padding: const EdgeInsets.all(16.0),
-child: Row(
-children: [
-  CircleAvatar(
-    backgroundImage: AssetImage('assets/images/chat_support.webp'), // Use AssetImage for local image
-    radius: 25,
+  // Chat header
+  Container(
+    padding: const EdgeInsets.all(16.0),
+    decoration: BoxDecoration(
+      color: Colors.blue, // Blue header background
+      borderRadius: BorderRadius.only(
+        topLeft: Radius.circular(10),
+        topRight: Radius.circular(10),
+      ),
+    ),
+    child: Row(
+      children: [
+        CircleAvatar(
+          backgroundImage: AssetImage('assets/images/chat_support.webp'), // Use AssetImage for local image
+          radius: 25,
+        ),
+        SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Chat Bot',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              'Welcome to sahayog!',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+        Spacer(),
+      ],
+    ),
   ),
-SizedBox(width: 10),
-Column(
-crossAxisAlignment: CrossAxisAlignment.start,
-children: [
-Text('Chat Support',
-style: TextStyle(
-fontSize: 18, fontWeight: FontWeight.bold)),
-],
-),
-],
-),
-),
-Divider(),
+Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
 
 // Show ticket subject, description, and image at the top (fixed)
 if (_ticketData != null) _buildTicketCreationDetails(_ticketData!), // Show the ticket creation details at the top

@@ -170,6 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
+
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance.collection('tickets').snapshots(),
               builder: (context, snapshot) {

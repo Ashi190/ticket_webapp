@@ -175,13 +175,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     child: ButtonWidget(
                                       icon: Icon(Icons.logout_sharp, color: Colors.white),
                                       buttonText: 'Logout',
+
                                       onPressed: () {
-                                        Navigator.pushReplacement(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => LoginScreen(), // Replace with your LoginPage
-                                          ),
-                                        );
+                                        _showLogoutConfirmation(context); // Show logout confirmation dialog
                                       },
                                       buttonColor: Colors.teal.shade400, // Logout button color
                                     ),
@@ -222,4 +218,37 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
     );
   }
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Logout"),
+          content: Text("Are you sure you want to log out?"),
+          actions: <Widget>[
+            TextButton(
+              child: Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: Text("Logout"),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                // Navigate to LoginScreen or call the logout function
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => LoginScreen(), // Replace with your LoginPage
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }

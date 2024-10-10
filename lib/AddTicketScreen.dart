@@ -725,12 +725,50 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       content: Column(
         children: [
           _buildTextField('Agent Name *', _agentNameController, 'Enter Agent Name', enabled: false),
-          SizedBox(height: 8),
+          SizedBox(height: 16),
           _buildTextField('Agent Email *', _agentEmailController, 'Enter Agent Email', enabled: false),
         ],
       ),
     );
   }
+
+  Widget _buildCard({required String title, required Widget content}) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.70, // Set width to 70% of the screen
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.95), // Slightly increase opacity for better visibility
+        borderRadius: BorderRadius.circular(15), // Rounded corners
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.5), // Stronger shadow
+            spreadRadius: 5, // Increase spread radius for the shadow effect
+            blurRadius: 15, // More blur for softer shadow
+            offset: Offset(0, 8), // Vertical offset for more depth
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(bottom: 16), // Padding under the title for clean separation
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 20, // Slightly larger font for the title
+                fontWeight: FontWeight.bold,
+                color: Colors.teal.shade800,
+                height: 1.5, // Increased line height for better readability
+              ),
+            ),
+          ),
+          content,
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildTicketInfoSection() {
     return _buildCard(
@@ -752,28 +790,6 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
   }
 
 
-  Widget _buildCard({required String title, required Widget content}) {
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueAccent),
-            ),
-            SizedBox(height: 10),
-            content,
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _addImageUrlToDescription() async {
     if (_descriptionController.text.isNotEmpty) {
@@ -908,6 +924,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       ],
     );
   }
+
 
   Widget _buildDescriptionField() {
     return Column(
