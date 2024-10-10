@@ -16,6 +16,16 @@ class AuthhProvider with ChangeNotifier {
   String? get userEmail => _email;
   String? get Currentuser => _Currentuser;
   bool get isAuthenticated => _isLoggedIn;
+  // Method to send OTP (in this case, a password reset link)
+  Future<void> sendOtpToEmail(String email) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      print("Password reset email sent to $email");
+    } on FirebaseAuthException catch (e) {
+      print("Failed to send password reset email: $e");
+      throw e; // You can handle error here or show message to the user
+    }
+  }
 
   Future<void> login(String email,String password,BuildContext context) async {
     _isLoggedIn = true;
