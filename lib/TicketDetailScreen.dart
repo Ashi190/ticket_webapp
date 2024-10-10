@@ -490,7 +490,7 @@ bottomNavigationBar: _buildBottomActionBar(),
         return Colors.green;
       case 'Reassigned':
         return Colors.lime;
-      case 'Close':
+      case 'Closed':
         return Colors.redAccent;
       default:
         return Colors.grey;
@@ -1016,13 +1016,13 @@ style: TextStyle(color: Colors.black),
 if (userDepartment == 'Admin' || userDepartment == 'Support') // Visible only for Admin and Support
 ElevatedButton(
 onPressed: () async {
-await _updateTicketStatus('Close'); // Update the status to 'Close'
+await _updateTicketStatus('Closed'); // Update the status to 'Close'
 },
 style: ElevatedButton.styleFrom(
 backgroundColor: Colors.white38, // Button background color matching the theme
 ),
 child: Text(
-'Close',
+'Closed',
 style: TextStyle(color: Colors.black),
 ),
 ),

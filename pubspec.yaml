@@ -84,6 +84,7 @@ dependencies:
 
 
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -113,6 +114,7 @@ flutter:
     - assets/images/Rectangle128.jpg
     - assets/images/chat_support.webp
     - assets/images/chatimagee.jpg
+    - assets/images/KOC.jpeg
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
