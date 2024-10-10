@@ -45,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
     _controller.forward(); // Start the animation
   }
+
   // Method to send OTP
  /* Future<void> _sendOtp() async {
     String email = _emailController.text;
@@ -237,9 +238,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }
 
 
+
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthhProvider>(context);
+
 
     return Scaffold(
       body: FadeTransition(
@@ -324,34 +326,18 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             borderSide: BorderSide.none,
                           ),
                         ),
-                      ),
-                    ),
+                        onSubmitted: (_) {
+                          _triggerSignIn();  // Trigger sign-in when "Enter" is pressed
+                        },
+              ),
+            ),
                     SizedBox(height: 40),
                     // Sign In Button with Animation and Authentication Logic
                     _isLoading
                         ? CircularProgressIndicator()
                         : ElevatedButton(
                       onPressed: () async {
-                        setState(() {
-                          _isLoading = true;
-                        });
-
-                        String username = _usernameController.text;
-                        String password = _passwordController.text;
-
-                        if (username.isNotEmpty && password.isNotEmpty) {
-                          await authProvider.login(username, password, context);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Please enter valid credentials'),
-                            ),
-                          );
-                        }
-
-                        setState(() {
-                          _isLoading = false;
-                        });
+                        _triggerSignIn();
                       },
                       style: ElevatedButton.styleFrom(
                         padding: EdgeInsets.symmetric(horizontal: 80, vertical: 15),
@@ -413,7 +399,31 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     );
   }
 
+  // Helper method to trigger sign-in
+  void _triggerSignIn() async {
+    final authProvider = Provider.of<AuthhProvider>(context, listen: false);  // Fetch AuthProvider here
 
+    setState(() {
+      _isLoading = true;
+    });
+
+    String username = _usernameController.text;
+    String password = _passwordController.text;
+
+    if (username.isNotEmpty && password.isNotEmpty) {
+      await authProvider.login(username, password, context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter valid credentials'),
+        ),
+      );
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
 
   @override
   void dispose() {
