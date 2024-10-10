@@ -166,175 +166,175 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
 
     // Development
     'Order ID is not visible to me in the sales app': [
-      'Is the order recently placed?',
-      'Have you tried refreshing or syncing the sales app?',
-      'Is the order visible on other platforms (e.g., web, admin panel)?',
-      'Did the order go through successfully or is it still pending?',
-      'Are you using the correct filter/search options for Order ID?',
-      'Is there any error message or warning related to the missing order?',
-      'Have there been any recent updates or changes to the sales app?',
+      ' the order is recently placed',
+      ' you have tried refreshing or syncing the sales app',
+      ' the order is visible on other platforms (e.g., web, admin panel)',
+      ' the order go through successfully or is it still pending',
+      ' you are using the correct filter/search options for Order ID',
+      ' there are error message or warning related to the missing order',
+      ' there have  been any recent updates or changes to the sales app',
       'Others',
     ],
     'Share any other information such as customer name, number, products': [
-      'Is the customer new or existing?',
-      'Is the customer’s contact information up-to-date?',
-      'Do you have the correct customer ID or reference number?',
-      'Are there any specific product details or issues to share?',
-      'Is the customer waiting for product delivery or support?',
-      'Is the customer facing any technical issues while accessing product information?',
-      'Do you have the order number related to the customer’s query?',
-      'Are there any issues with the customer’s contact preferences (SMS, call, email)?',
-      'Have you tried reaching the customer multiple times without success?',
+      ' the customer new or existing',
+      ' the customer’s contact information up-to-date',
+      ' you have the correct customer ID or reference number',
+      ' there are any specific product details or issues to share',
+      ' the customer is waiting for product delivery or support',
+      'the customer is facing any technical issues while accessing product information',
+      ' you have the order number related to the customer’s query',
+      'there are any issues with the customer’s contact preferences (SMS, call, email)',
+      ' you have tried reaching the customer multiple times without success',
       'Others',
     ],
     'Sales app not working': [
-      'Is the app crashing immediately or freezing on a specific screen?',
-      'Have you recently updated the app?',
-      'Is there an error message when the app stops working?',
-      'Have you tried reinstalling the app?',
-      'Are other users facing the same issue?',
-      'Does the app fail to load or get stuck during login?',
-      'Have you tried clearing the app cache or data?',
-      'Are other apps on your device working correctly?',
-      'What was the last action you performed before the app stopped working?',
+      'the app is crashing immediately or freezing on a specific screen',
+      'you recently updated the app',
+      'there is an error message when the app stops working',
+      'you tried reinstalling the app',
+      'other users are facing the same issue',
+      'the app fail to load or get stuck during login',
+      'you tried clearing the app cache or data',
+      'other apps are on your device working correctly',
+      'last action you performed before the app stopped working',
       'Others',
     ],
     'Call not sync in sales app': [
-      'Is the issue affecting all calls or specific ones?',
-      'Have you checked your internet connection during the sync?',
-      'Is the sales app updated to the latest version?',
-      'Are other features of the app syncing correctly?',
-      'Have you cleared the app cache or data recently?',
-      'Is there any error message shown during the sync process?',
-      'Have you tried logging out and logging back into the app?',
-      'Are calls recorded correctly, but not syncing to the server?',
-      'Are other users facing the same issue?',
+      'the issue is affecting all calls or specific ones',
+      'you checked your internet connection during the sync',
+      'the sales app is updated to the latest version',
+      'other features are of the app syncing correctly',
+      'you cleared the app cache or data recently',
+      'there is any error message shown during the sync process',
+      'you tried logging out and logging back into the app',
+      'calls are recorded correctly, but not syncing to the server',
+      'other users are facing the same issue',
       'Others',
     ],
     'Unable to place orders': [
-      'Is there an error message when trying to place the order?',
-      'Have you tried placing an order with different products or customers?',
-      'Did the app crash or freeze during the order placement process?',
-      'Is your internet connection stable while placing the order?',
-      'Were you able to successfully place orders before?',
-      'Is the payment section not working or getting stuck?',
-      'Is the issue happening with specific products or all products?',
-      'Is there a delay in adding products to the cart?',
-      'Are other users able to place orders using the app?',
+      'there an error message when trying to place the order',
+      'you tried placing an order with different products or customers',
+      'the app crash or freeze during the order placement process',
+      'your internet connection is stable while placing the order',
+      'you were able to successfully place orders before',
+      'the payment section is not working or getting stuck',
+      'the issue is happening with specific products or all products',
+      'there is a delay in adding products to the cart',
+      'other users are able to place orders using the app',
       'Others',
     ],
     'Sales app showing incorrect Data': [
-      'Which specific data appears to be incorrect?',
-      'Is the data showing outdated information or wrong values?',
-      'Is the issue happening only with certain customers or products?',
-      'Has the app been synced recently to fetch new data?',
-      'Does refreshing or reloading the data resolve the issue?',
-      'Have there been any recent changes in the product/customer database?',
-      'Are other users facing the same issue?',
-      'Have you tried logging out and logging back in to refresh the data?',
-      'Is the incorrect data appearing across all sections or only in a specific one?',
+      'specific data appears to be incorrect',
+      'the data is showing outdated information or wrong values',
+      'the issue is happening only with certain customers or products',
+      'the app has been synced recently to fetch new data',
+      'refreshing or reloading the data resolve the issue',
+      'there have been any recent changes in the product/customer database',
+      'other users are facing the same issue',
+      'you tried logging out and logging back in to refresh the data',
+      'the incorrect data is appearing across all sections or only in a specific one',
       'Others',
     ],
     'Customer not showing in sales app': [
-      'Is this a new customer or an existing one?',
-      'Has the customer’s data been synced to the app?',
-      'Are other customers showing correctly in the app?',
-      'Has the customer recently registered or updated their details?',
-      'Has the app been synced recently to pull new customer data?',
-      'Does refreshing or reloading the customer list resolve the issue?',
-      'Is the customer missing only in a specific section of the app?',
-      'Are other users experiencing the same issue with missing customers?',
-      'Have you tried searching the customer by ID or contact number?',
+      'this is a new customer or an existing one',
+      'the customer’s data been synced to the app',
+      'other customers are showing correctly in the app',
+      'the customer recently registered or updated their details',
+      'the app been synced recently to pull new customer data',
+      'refreshing or reloading the customer list resolve the issue',
+      'the customer is missing only in a specific section of the app',
+      'other users are experiencing the same issue with missing customers',
+      'you tried searching the customer by ID or contact number',
       'Others',
     ],
     // Marketing
     'Lead requirement Related': [
-      'What type of leads are you looking for (e.g., industry, region)?',
-      'Are these leads for a specific campaign or product?',
-      'Do you have a target number of leads in mind?',
-      'Is there any specific timeframe for generating these leads?',
-      'Are there specific criteria (e.g., job title, company size) for the leads?',
-      'Is this request for B2B or B2C leads?',
-      'Do you need cold leads or nurtured leads?',
+      'type of leads are you looking for (e.g., industry, region)',
+      'these are leads for a specific campaign or product',
+      'you have a target number of leads in mind',
+      'there is any specific timeframe for generating these leads',
+      'there are specific criteria (e.g., job title, company size) for the leads',
+      'this is request for B2B or B2C leads',
+      'you need cold leads or nurtured leads',
       'Others',
     ],
     'Interact not working': [
-      'Is the issue with the entire platform or a specific feature?',
-      'Did the issue start after a recent update?',
-      'Have you tried clearing your cache or refreshing the page?',
-      'Are other team members experiencing the same issue?',
-      'Does the platform display an error message?',
-      'Is there a delay or is it completely unresponsive?',
-      'Have you tried accessing the platform from a different device or browser?',
+      'the issue is with the entire platform or a specific feature',
+      'the issue start after a recent update',
+      'you tried clearing your cache or refreshing the page',
+      'other team members are experiencing the same issue',
+      'the platform display an error message',
+      'there is a delay or is it completely unresponsive',
+      'you tried accessing the platform from a different device or browser',
       'Others',
     ],
     'Micro dealership related': [
-      'Is this for a new micro dealership or an existing one?',
-      'Are you facing issues with registration or account activation?',
-      'Do you need assistance with setting up marketing materials?',
-      'Is there a problem with receiving products or services for the dealership?',
-      'Are you experiencing delays in lead generation for the micro dealership?',
-      'Do you need help managing dealership finances or accounts?',
+      'this is for a new micro dealership or an existing one',
+      'you are facing issues with registration or account activation',
+      'you need assistance with setting up marketing materials',
+      'there is a problem with receiving products or services for the dealership',
+      'you are experiencing delays in lead generation for the micro dealership',
+      'you need help managing dealership finances or accounts',
       'Others',
     ],
     'Kylas related': [
-      'Is there a specific feature in Kylas that’s not working?',
-      'Did the issue occur after a software update?',
-      'Have you tried reloading or resetting the Kylas app?',
-      'Are you facing login issues or access problems?',
-      'Is Kylas showing any error message or code?',
-      'Have you experienced delays in syncing data from Kylas?',
-      'Are you facing problems with the Kylas mobile app or desktop version?',
+      'there is a specific feature in Kylas that’s not working',
+      'the issue occur after a software update',
+      'you tried reloading or resetting the Kylas app',
+      'you are facing login issues or access problems',
+      'Kylas is showing any error message or code',
+      'you experienced delays in syncing data from Kylas',
+      'you are facing problems with the Kylas mobile app or desktop version',
       'Others',
     ],
     'Banner & Labels': [
-      'Is this a request for new banner designs or labels?',
-      'Do you need updates or corrections on existing banners or labels?',
-      'What size or specifications are required for the banner or label?',
-      'Do you have the content ready for the banners or labels?',
-      'Is this a one-time request or ongoing for a campaign?',
-      'Do you need printed labels or digital versions?',
-      'Is this related to specific products or campaigns?',
+      'this is a request for new banner designs or labels',
+      'you need updates or corrections on existing banners or labels',
+      'What size or specifications are required for the banner or label',
+      'you have the content ready for the banners or labels',
+      'this is a one-time request or ongoing for a campaign',
+      'you need printed labels or digital versions',
+      'this is related to specific products or campaigns',
       'Others',
     ],
     'Website issue': [
-      'Is the website not loading or showing errors?',
-      'Are you experiencing issues with the checkout process?',
-      'Is the website displaying broken links or missing content?',
-      'Are images or banners not displaying correctly on the website?',
-      'Is the website running slower than usual?',
-      'Have you checked if the website is up to date with the latest version?',
-      'Are any third-party integrations (e.g., payment gateways) not working?',
+      'the website is not loading or showing errors',
+      'you are experiencing issues with the checkout process',
+      'the website is displaying broken links or missing content',
+      'images or banners are not displaying correctly on the website',
+      'the website is running slower than usual',
+      'you checked if the website is up to date with the latest version',
+      'Are any third-party integrations (e.g., payment gateways) not working',
       'Others',
     ],
     'Pricing related': [
-      'Is the displayed price incorrect?',
-      'Are you facing issues with discounts or promotions?',
-      'Is there a mismatch between the cart total and product prices?',
-      'Is the price different across regions or locations?',
-      'Are there currency conversion issues?',
-      'Is there a problem with bulk pricing or quantity discounts?',
-      'Have you applied any coupons that are not reflecting?',
+      'the displayed price is incorrect',
+      'you are facing issues with discounts or promotions',
+      'there is a mismatch between the cart total and product prices',
+      'the price is different across regions or locations',
+      'there are currency conversion issues',
+      'there is a problem with bulk pricing or quantity discounts',
+      'you applied any coupons that are not reflecting',
       'Others',
     ],
     'Template related': [
-      'Do you need help with creating a new template?',
-      'Is the issue related to a formatting or layout error in the template?',
-      'Do you require specific design elements to be added to the template?',
-      'Are you facing issues with text or image alignment?',
-      'Do you need a template for a specific campaign or product?',
-      'Are there issues with saving or reusing the template?',
-      'Do you need assistance with uploading or sharing the template?',
+      'you need help with creating a new template',
+      'the issue is related to a formatting or layout error in the template',
+      'you require specific design elements to be added to the template',
+      'you are facing issues with text or image alignment',
+      'you need a template for a specific campaign or product',
+      'there are issues with saving or reusing the template',
+      'you need assistance with uploading or sharing the template',
       'Others',
     ],
     'App task and others': [
-      'Is there a specific app feature you are facing issues with?',
-      'Do you need help completing a specific task within the app?',
-      'Are there any app performance issues (e.g., crashes, slow response)?',
-      'Is the app failing to sync or save data properly?',
-      'Are you looking for assistance with app integration or plugins?',
-      'Do you need help with app customization for a campaign or project?',
-      'Have you encountered any bugs or glitches in the app?',
+      'there is a specific app feature you are facing issues with',
+      'you need help completing a specific task within the app',
+      'there are any app performance issues (e.g., crashes, slow response)',
+      'the app is failing to sync or save data properly',
+      'you are looking for assistance with app integration or plugins',
+      'you need help with app customization for a campaign or project',
+      'you have encountered any bugs or glitches in the app',
       'Others',
     ],
     // Accounts
@@ -737,20 +737,20 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       title: 'Ticket Information',
       content: Column(
         children: [
-          _buildTextField('Subject *', _subjectController, 'Enter Subject'),
-          SizedBox(height: 16),
-          _buildDescriptionField(),
-          SizedBox(height: 16),
-          _buildQuestionnaireDropdown(),
+          _buildQuestionnaireDropdown(),  // Moved to the top
           if (_followUpQuestions.containsKey(_selectedQuestionnaire)) ...[
             SizedBox(height: 16),
-            _buildFollowUpQuestionDropdown(),
+            _buildFollowUpQuestionDropdown(),  // Moved to the top
           ],
-
+          SizedBox(height: 16),
+          _buildTextField('Subject *', _subjectController, 'Enter Subject'),  // Moved down
+          SizedBox(height: 16),
+          _buildDescriptionField(),  // Moved down
         ],
       ),
     );
   }
+
 
   Widget _buildCard({required String title, required Widget content}) {
     return Card(
@@ -775,6 +775,115 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
     );
   }
 
+  Future<void> _addImageUrlToDescription() async {
+    if (_descriptionController.text.isNotEmpty) {
+      String? downloadUrl;
+
+      if (_selectedImageFile != null) {
+        downloadUrl = await _uploadImage(_selectedImageFile!);
+
+        if (downloadUrl != null) {
+          setState(() {
+            _uploadedImageUrl = downloadUrl;
+          });
+        }
+      }
+    }
+  }
+
+  Widget _buildQuestionnaireDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Questionnaire', style: TextStyle(fontWeight: FontWeight.w500)),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          decoration: BoxDecoration(
+            color: Color(0xFFF7F5F2), // Matching the light beige background
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: DropdownButton<String>(
+            value: _selectedQuestionnaire.isNotEmpty ? _selectedQuestionnaire : null,
+            hint: Text('Select Questionnaire'),
+            isExpanded: true, // Ensures the dropdown takes up full width
+            underline: SizedBox(), // Removes the default underline
+            icon: Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF5B4636)), // Modern icon
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedQuestionnaire = newValue!;
+                _selectedDepartment = _questionnaireToDepartment[_selectedQuestionnaire] ?? 'Unknown';
+              });
+            },
+            items: _questionnaireOptions.map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+          ),
+        ),
+        if (_questionnaireError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              _questionnaireError!,
+              style: TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFollowUpQuestionDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Follow-up Question', style: TextStyle(fontWeight: FontWeight.w500)),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          decoration: BoxDecoration(
+            color: Color(0xFFF7F5F2), // Matching the light beige background
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: DropdownButton<String>(
+            value: _selectedFollowUpQuestion.isNotEmpty ? _selectedFollowUpQuestion : null,
+            hint: Text('Select Follow-up Question'),
+            isExpanded: true, // Ensures the dropdown takes up full width
+            underline: SizedBox(), // Removes the default underline
+            icon: Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF5B4636)), // Modern icon
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedFollowUpQuestion = newValue!;
+              });
+            },
+            items: _followUpQuestions[_selectedQuestionnaire]!
+                .map<DropdownMenuItem<String>>((String value) {
+              return DropdownMenuItem<String>(
+                value: value,
+                child: Text(value),
+              );
+            }).toList(),
+          ),
+        ),
+        if (_followUpQuestionError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              _followUpQuestionError!,
+              style: TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // Helper function to trigger ticket submission
+  void _triggerSubmit() {
+    addTicket();  // Add your ticket submission logic here
+  }
+
   Widget _buildTextField(String label, TextEditingController controller, String hintText, {bool enabled = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,25 +901,12 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
               borderSide: BorderSide.none,
             ),
           ),
+          onSubmitted: (value) {
+            _triggerSubmit();  // Submit form when "Enter" is pressed
+          },
         ),
       ],
     );
-  }
-
-  Future<void> _addImageUrlToDescription() async {
-    if (_descriptionController.text.isNotEmpty) {
-      String? downloadUrl;
-
-      if (_selectedImageFile != null) {
-        downloadUrl = await _uploadImage(_selectedImageFile!);
-
-        if (downloadUrl != null) {
-          setState(() {
-            _uploadedImageUrl = downloadUrl;
-          });
-        }
-      }
-    }
   }
 
   Widget _buildDescriptionField() {
@@ -832,113 +928,42 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
               },
             ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuestionnaireDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Questionnaire', style: TextStyle(fontWeight: FontWeight.w500)),
-        DropdownButton<String>(
-          value: _selectedQuestionnaire.isNotEmpty ? _selectedQuestionnaire : null,
-          hint: Text('Select Questionnaire'),
-          onChanged: (String? newValue) {
-            setState(() {
-              _selectedQuestionnaire = newValue!;
-              // Automatically select department based on questionnaire
-              _selectedDepartment = _questionnaireToDepartment[_selectedQuestionnaire] ?? 'Unknown';
-            });
+          onSubmitted: (value) {
+            _triggerSubmit();  // Submit form when "Enter" is pressed
           },
-          items: _questionnaireOptions.map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
         ),
-        if (_questionnaireError != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              _questionnaireError!,
-              style: TextStyle(color: Colors.red, fontSize: 12),
-            ),
-          ),
       ],
     );
   }
-
-  Widget _buildFollowUpQuestionDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Follow-up Question', style: TextStyle(fontWeight: FontWeight.w500)),
-        DropdownButton<String>(
-          value: _selectedFollowUpQuestion.isNotEmpty ? _selectedFollowUpQuestion : null,
-          hint: Text('Select Follow-up Question'),
-          onChanged: (String? newValue) {
-            setState(() {
-              _selectedFollowUpQuestion = newValue!;
-            });
-          },
-          items: _followUpQuestions[_selectedQuestionnaire]!
-              .map<DropdownMenuItem<String>>((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
-        ),
-        if (_followUpQuestionError != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              _followUpQuestionError!,
-              style: TextStyle(color: Colors.red, fontSize: 12),
-            ),
-          ),
-      ],
-    );
-  }
-
- /* Widget _buildAutoSelectedDepartment() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Auto-Selected Department', style: TextStyle(fontWeight: FontWeight.w500)),
-        TextField(
-          controller: TextEditingController(text: _selectedDepartment), // Auto-filled department
-          enabled: false, // Disabled as it's auto-selected
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey.shade200,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-      ],
-    );
-  }*/
 
   Widget _buildButtons(BuildContext context) {
     return ElevatedButton.icon(
       onPressed: () {
-        addTicket();
+        _triggerSubmit();
       },
-      icon: Icon(Icons.save),
-      label: Text('Submit'),
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+      icon: Icon(
+        Icons.send_rounded,  // Use a more modern icon
+        color: Colors.white,
+      ),
+      label: Text(
+        'Submit',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
         ),
+      ),
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 32),  // Increase padding for a modern look
+        backgroundColor:  Colors.blueAccent,  // The brownish color for the button background
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(30),  // Increased rounding for a modern look
+        ),
+        elevation: 5,  // Add slight elevation for a 3D effect
+        shadowColor: Colors.black26,  // Subtle shadow
       ),
     );
   }
+
+
 }
