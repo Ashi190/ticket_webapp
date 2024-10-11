@@ -420,7 +420,7 @@ bottomNavigationBar: _buildBottomActionBar(),
         _buildTableRow('Description', _ticketData?['description']),
         _buildTableRow('Department', _ticketData?['department']),
         _buildTableRow('Questionnaire', _ticketData?['questionnaire']),
-        _buildTableRow('Followup Question', _ticketData?['followup_question']),
+        _buildTableRow('Followup Question', _ticketData?['follow_up_question']),
       ],
     );
   }
@@ -1007,17 +1007,18 @@ value: _selectedUser, // Show selected value in dropdown
 ),
 
 // Support Icon (Visible to everyone except Admin and Support)
-if (userDepartment != 'Admin' && userDepartment != 'Support') // Ensure it's hidden only for Admin and Support
-GestureDetector(
-onTap: () async {
-await _assignTicketToSupport(); // Trigger the support reassignment when the icon is clicked
-},
-child: Icon(
-Icons.support_agent, // Icon for support
-color: Colors.teal.shade800, // Match the icon color with the theme
-size: 30, // Adjust size if needed
-),
-),
+if (userDepartment != 'Admin' && userDepartment != 'Support')   // Ensure it's hidden only for Admin and Support
+
+  GestureDetector(
+    onTap: () {
+      _showRouteToSupportDialog();  // Show dialog when icon is clicked
+    },
+    child: Icon(
+      Icons.support_agent, // Icon for support
+      color: Colors.teal.shade800, // Match the icon color with the theme
+      size: 30, // Adjust size if needed
+    ),
+  ),
 
 // Under Progress button
 ElevatedButton(
@@ -1051,6 +1052,35 @@ style: TextStyle(color: Colors.black),
 ),
 );
 }
+
+// Method to show the dialog
+  void _showRouteToSupportDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Route to Support'),
+          content: Text('Do you really want to route this ticket to support?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();  // Close dialog if "No" is pressed
+              },
+              child: Text('No'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();  // Close dialog before reassigning ticket
+                await _assignTicketToSupport();  // Reassign ticket to support
+                Navigator.pop(context);  // Remove the ticket from the screen
+              },
+              child: Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
 // Method to assign the ticket to Support
 Future<void> _assignTicketToSupport() async {
