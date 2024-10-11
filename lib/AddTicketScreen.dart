@@ -543,7 +543,23 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       ],
     );
   }
-
+  // Function to lock the "Image Attached" text
+  void _lockImageText() {
+    // If the user tries to modify the "Image Attached" text, restore it
+    final imageText = '[Image Attached]';
+    if (_descriptionController.text.contains(imageText)) {
+      final lastIndex = _descriptionController.text.indexOf(imageText);
+      if (lastIndex != _descriptionController.selection.baseOffset) {
+        // Reset the text to maintain the [Image Attached] marker
+        _descriptionController.value = _descriptionController.value.copyWith(
+          text: _descriptionController.text,
+          selection: TextSelection.fromPosition(
+            TextPosition(offset: _descriptionController.text.length),
+          ),
+        );
+      }
+    }
+  }
 
   Widget _buildDescriptionField() {
     return Column(
@@ -560,14 +576,41 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
               icon: Icon(Icons.screenshot),
               onPressed: () async {
                 await _pickImage();
+                if (_selectedImageFile != null) {
+                  setState(() {
+                    // Add a marker text indicating the image is attached
+                    if (!_descriptionController.text.contains('[Image Attached]')) {
+                      _descriptionController.text += "\n[Image Attached]";
+                    }
+                  });
+                }
                 await _addImageUrlToDescription();
               },
             ),
           ),
           onSubmitted: (value) {
-            _triggerSubmit();  // Submit form when "Enter" is pressed
+            _triggerSubmit(); // Submit form when "Enter" is pressed
           },
         ),
+        // Display the selected image if any
+        if (_selectedImageFile != null)
+          Column(
+            children: [
+              SizedBox(height: 10),
+              Text(
+                'Image Picked:',
+                style: TextStyle(fontWeight: FontWeight.w500, color: Colors.grey),
+              ),
+              SizedBox(height: 5),
+              Image.memory(
+                _selectedImageFile!.bytes!, // Display the image bytes
+                height: 100,
+                width: 100,
+                fit: BoxFit.cover,
+              ),
+              SizedBox(height: 10),
+            ],
+          ),
       ],
     );
   }
@@ -601,5 +644,11 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
     );
   }
 
+  @override
+  void dispose() {
+    _descriptionController.removeListener(_lockImageText); // Remove listener to avoid memory leaks
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
 }

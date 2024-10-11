@@ -16,7 +16,7 @@ class _TicketListScreenState extends State<TicketListScreen> {
   String userEmail = ''; // To store current user's email
   List<Timer?> _timers = []; // Store timers for each ticket
   Map<String, int> remainingTimes = {}; // Store remaining times for each ticket
-
+ // String selectedStatus = 'All'; // Initial filter is 'All'
   @override
   void initState() {
     super.initState();
@@ -135,112 +135,150 @@ class _TicketListScreenState extends State<TicketListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('My Tickets'),
+      appBar: AppBar(
+        title: Text('My Tickets'),
         automaticallyImplyLeading: false, // This removes the back button
       ),
-        body: StreamBuilder<List<DocumentSnapshot>>(
-          stream: _getTicketsStream(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return Center(child: CircularProgressIndicator());
-            }
+      body: Column(
+        children: [
+          // Add the filter dropdown at the top
+         // _buildStatusFilter(),
 
-            final tickets = snapshot.data!; // This is a combined list of raised and assigned tickets
+          // Expanded widget to allow the ListView to take the remaining space
+          Expanded(
+            child: StreamBuilder<List<DocumentSnapshot>>(
+              stream: _getTicketsStream(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
 
-            if (tickets.isEmpty) {
-              return Center(child: Text('No tickets available.'));
-            }
+                final tickets = snapshot.data!; // This is a combined list of raised and assigned tickets
 
-            // List to store tickets and their remaining time
-            List<Map<String, dynamic>> ticketsWithRemainingTime = [];
+                if (tickets.isEmpty) {
+                  return Center(child: Text('No tickets available.'));
+                }
 
-            for (var ticketDoc in tickets) {
-              final ticket = ticketDoc.data() as Map<String, dynamic>;
+                // List to store tickets and their remaining time
+                List<Map<String, dynamic>> ticketsWithRemainingTime = [];
 
-              if (ticket['timeline_start'] != null && ticket['timeline_duration'] != null) {
-                final Timestamp timelineStartTimestamp = ticket['timeline_start'];
-                final DateTime timelineStart = timelineStartTimestamp.toDate();
-                final int timelineDuration = ticket['timeline_duration'];
+                for (var ticketDoc in tickets) {
+                  final ticket = ticketDoc.data() as Map<String, dynamic>;
 
-                final int remainingTime = _getUpdatedRemainingTime(timelineStart, timelineDuration);
+                  if (ticket['timeline_start'] != null && ticket['timeline_duration'] != null) {
+                    final Timestamp timelineStartTimestamp = ticket['timeline_start'];
+                    final DateTime timelineStart = timelineStartTimestamp.toDate();
+                    final int timelineDuration = ticket['timeline_duration'];
 
-                ticketsWithRemainingTime.add({
-                  'ticket': ticket,
-                  'ticketId': ticketDoc.id,
-                  'remainingTime': remainingTime,
-                  'timelineDuration': timelineDuration,
-                  'color': _getTimelineColor(remainingTime, timelineDuration),
+                    final int remainingTime = _getUpdatedRemainingTime(timelineStart, timelineDuration);
+
+                    ticketsWithRemainingTime.add({
+                      'ticket': ticket,
+                      'ticketId': ticketDoc.id,
+                      'remainingTime': remainingTime,
+                      'timelineDuration': timelineDuration,
+                      'color': _getTimelineColor(remainingTime, timelineDuration),
+                    });
+
+                    if (!remainingTimes.containsKey(ticketDoc.id)) {
+                      remainingTimes[ticketDoc.id] = remainingTime;
+                      _startTimer(ticketDoc.id, remainingTime);
+                    }
+                  }
+                }
+
+                ticketsWithRemainingTime.sort((a, b) {
+                  int colorWeightA = _getColorWeight(a['color']);
+                  int colorWeightB = _getColorWeight(b['color']);
+
+                  if (colorWeightA != colorWeightB) {
+                    return colorWeightA.compareTo(colorWeightB);
+                  } else {
+                    return a['remainingTime'].compareTo(b['remainingTime']);
+                  }
                 });
 
-                if (!remainingTimes.containsKey(ticketDoc.id)) {
-                  remainingTimes[ticketDoc.id] = remainingTime;
-                  _startTimer(ticketDoc.id, remainingTime);
-                }
-              }
-            }
+                return ListView.builder(
+                  itemCount: ticketsWithRemainingTime.length,
+                  itemBuilder: (context, index) {
+                    final ticketData = ticketsWithRemainingTime[index];
+                    final ticket = ticketData['ticket'];
+                    final int remainingTime = remainingTimes[ticketData['ticketId']] ?? ticketData['remainingTime'];
+                    final int timelineDuration = ticketData['timelineDuration'];
+                    final Color color = ticketData['color'];
 
-            ticketsWithRemainingTime.sort((a, b) {
-              int colorWeightA = _getColorWeight(a['color']);
-              int colorWeightB = _getColorWeight(b['color']);
-
-              if (colorWeightA != colorWeightB) {
-                return colorWeightA.compareTo(colorWeightB);
-              } else {
-                return a['remainingTime'].compareTo(b['remainingTime']);
-              }
-            });
-
-            return ListView.builder(
-              itemCount: ticketsWithRemainingTime.length,
-              itemBuilder: (context, index) {
-                final ticketData = ticketsWithRemainingTime[index];
-                final ticket = ticketData['ticket'];
-                final int remainingTime = remainingTimes[ticketData['ticketId']] ?? ticketData['remainingTime'];
-                final int timelineDuration = ticketData['timelineDuration'];
-                final Color color = ticketData['color'];
-
-                return Card(
-                  elevation: 2,
-                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  child: ListTile(
-                    leading: Icon(Icons.receipt, color: Colors.teal),
-                    title: Text(ticket['subject'], style: TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Department: ${ticket['department']}'),
-                        Text('Ticket ID: ${ticketData['ticketId']}'),
-                        _buildTimelineStatus(remainingTime, timelineDuration),
-                      ],
-                    ),
-                    trailing: Container(
-                      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: ticket['status'] == 'Open' ? Colors.green : Colors.red,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        ticket['status'],
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TicketDetailScreen(ticketId: ticketData['ticketId']),
+                    return Card(
+                      elevation: 2,
+                      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                      child: ListTile(
+                        leading: Icon(Icons.receipt, color: Colors.teal),
+                        title: Text(ticket['subject'], style: TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Department: ${ticket['department']}'),
+                            Text('Ticket ID: ${ticketData['ticketId']}'),
+                            _buildTimelineStatus(remainingTime, timelineDuration),
+                          ],
                         ),
-                      );
-                    },
-                  ),
+                        trailing: Container(
+                          padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: ticket['status'] == 'Open' ? Colors.green : Colors.red,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            ticket['status'],
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TicketDetailScreen(ticketId: ticketData['ticketId']),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 );
               },
-            );
-          },
-        )
-
+            ),
+          ),
+        ],
+      ),
     );
   }
+
+
+  // Widget to build the status filter dropdown
+  // Widget _buildStatusFilter() {
+  //   return Padding(
+  //     padding: const EdgeInsets.all(8.0),
+  //     child: Row(
+  //       children: [
+  //         Text("Filter by status: "),
+  //         SizedBox(width: 10),
+  //         DropdownButton<String>(
+  //           value: selectedStatus,
+  //           items: ['All', 'Open', 'In Progress', 'Closed', 'Reassigned','Reassigned to Support','Under Progress', ]
+  //               .map((status) => DropdownMenuItem<String>(
+  //             value: status,
+  //             child: Text(status),
+  //           ))
+  //               .toList(),
+  //           onChanged: (value) {
+  //             setState(() {
+  //               selectedStatus = value ?? 'All';
+  //             });
+  //           },
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   // Start a Timer to update the remaining time
   void _startTimer(String ticketId, int remainingTime) {
