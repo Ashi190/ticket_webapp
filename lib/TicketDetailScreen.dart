@@ -611,6 +611,10 @@ bottomNavigationBar: _buildBottomActionBar(),
   }
 
 
+
+
+
+
 // Function to display the ticket creation details (subject, description, image) at the top of the chat
 Widget _buildTicketCreationDetails(Map<String, dynamic> ticketData) {
 return Container(
@@ -658,7 +662,7 @@ imageUrl: ticketData['image_url'],
 child: Image.network(
 ticketData['image_url'],
 height: 200, // Adjust as needed
-width: 200,
+width: double.infinity,
 fit: BoxFit.cover,
 ),
 ),
@@ -731,7 +735,7 @@ imageUrl: message['imageUrl'],
 child: Image.network(
 message['imageUrl'],
 height: 200, // Adjust the height as needed
-width: 200,
+width: double.infinity,
 fit: BoxFit.cover,
 ),
 ),
