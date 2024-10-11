@@ -516,110 +516,104 @@ bottomNavigationBar: _buildBottomActionBar(),
 
 
 
-Widget _buildChatSection() {
-return Expanded(
-child: Card(
-elevation: 8,
-shape: RoundedRectangleBorder(
-borderRadius: BorderRadius.circular(10),
-),
-child: Column(
-crossAxisAlignment: CrossAxisAlignment.start,
-children: [
-// Chat header with user details
-  // Chat header
-  Container(
-    padding: const EdgeInsets.all(16.0),
-    decoration: BoxDecoration(
-      color: Colors.blue, // Blue header background
-      borderRadius: BorderRadius.only(
-        topLeft: Radius.circular(10),
-        topRight: Radius.circular(10),
-      ),
-    ),
-    child: Row(
-      children: [
-        CircleAvatar(
-          backgroundImage: AssetImage('assets/images/chat_support.webp'), // Use AssetImage for local image
-          radius: 25,
+  Widget _buildChatSection() {
+    return Expanded(
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
         ),
-        SizedBox(width: 10),
-        Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Chat Bot',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            // Chat header with user details
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.blue, // Blue header background
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
+                ),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundImage: AssetImage('assets/images/chat_support.webp'), // Use AssetImage for local image
+                    radius: 25,
+                  ),
+                  SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chat Bot',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'Welcome to sahayog!',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Spacer(),
+                ],
               ),
             ),
-            Text(
-              'Welcome to sahayog!',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white70,
+            Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
+
+            // Scrollable area for both ticket details and messages
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('tickets')
+                    .doc(widget.ticketId)
+                    .collection('messages')
+                    .orderBy('timestamp', descending: false) // Sorting by timestamp (oldest to newest)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  final messages = snapshot.data!.docs;
+
+                  // Combine ticket details with chat messages in the same ListView
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(8.0),
+                    itemCount: messages.length + 1, // Add 1 for the ticket details
+                    itemBuilder: (context, index) {
+                      // Show ticket details at the top (first item)
+                      if (index == 0) {
+                        return _ticketData != null
+                            ? _buildTicketCreationDetails(_ticketData!)
+                            : SizedBox.shrink();
+                      }
+                      // Show chat messages below the ticket details
+                      final message = messages[index - 1].data() as Map<String, dynamic>;
+                      return _buildChatBubble(message);
+                    },
+                  );
+                },
               ),
             ),
           ],
         ),
-        Spacer(),
-      ],
-    ),
-  ),
-Divider(height: 1, thickness: 1, color: Colors.grey.shade300),
-
-// Show ticket subject, description, and image at the top (fixed)
-if (_ticketData != null) _buildTicketCreationDetails(_ticketData!), // Show the ticket creation details at the top
-
-Expanded(
-  child: Stack(
-  children: [
-  // Background image
-  Positioned.fill(
-  child: Opacity(
-  opacity: 0.1,  // Adjust the opacity to make it subtle
-  child: Image.asset(
-  'assets/images/chatimagee.jpg',  // Path to your background image
-  fit: BoxFit.cover,  // Ensures the image fits the chat area
-  ),
-  ),
-  ),
-StreamBuilder<QuerySnapshot>(
-stream: FirebaseFirestore.instance
-    .collection('tickets')
-    .doc(widget.ticketId)
-    .collection('messages')
-    .orderBy('timestamp', descending: true) // Sorting by timestamp
-    .snapshots(),
-builder: (context, snapshot) {
-if (!snapshot.hasData) {
-return Center(child: CircularProgressIndicator());
-}
-
-final messages = snapshot.data!.docs;
-
-// Display the actual chat messages only (without ticket creation details)
-return ListView.builder(
-padding: const EdgeInsets.all(8.0),
-reverse: true, // This ensures new messages appear at the bottom
-itemCount: messages.length,
-itemBuilder: (context, index) {
-final message = messages[index].data() as Map<String, dynamic>;
-return _buildChatBubble(message);
-},
-  );
-  },
-  ),
-  ],
-  ),
-  ),
-  ],
-  ),
-  ),
-  );
+      ),
+    );
   }
+
+
+
+
+
 
 // Function to display the ticket creation details (subject, description, image) at the top of the chat
 Widget _buildTicketCreationDetails(Map<String, dynamic> ticketData) {
@@ -1096,6 +1090,11 @@ await FirebaseFirestore.instance
 ScaffoldMessenger.of(context).showSnackBar(
 SnackBar(content: Text('Ticket successfully reassigned to Support.')),
 );
+
+// Refresh the ticket list to remove the reassigned ticket from the user's screen
+await _fetchTicketData();  // Refresh the ticket list after reassigning
+  // Navigate back to the ticket list screen if needed
+  Navigator.pop(context);  // Close the ticket detail screen
 } catch (error) {
 print('Error reassigning to support: $error');
 ScaffoldMessenger.of(context).showSnackBar(
