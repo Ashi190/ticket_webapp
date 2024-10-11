@@ -658,7 +658,7 @@ imageUrl: ticketData['image_url'],
 child: Image.network(
 ticketData['image_url'],
 height: 200, // Adjust as needed
-width: double.infinity,
+width: 200,
 fit: BoxFit.cover,
 ),
 ),
@@ -731,7 +731,7 @@ imageUrl: message['imageUrl'],
 child: Image.network(
 message['imageUrl'],
 height: 200, // Adjust the height as needed
-width: double.infinity,
+width: 200,
 fit: BoxFit.cover,
 ),
 ),
