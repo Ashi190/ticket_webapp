@@ -27,8 +27,8 @@ void main() async {
   } else {
     await Firebase.initializeApp();
   }
- // final authProvider = AuthProvider();
-//  await authProvider.checkLoginStatus(); // Initialize login status
+  // final authProvider = AuthProvider();
+  // await authProvider.checkLoginStatus();
 
   runApp(
     ChangeNotifierProvider(
@@ -41,13 +41,13 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-   final authProvider = Provider.of<AuthhProvider>(context);
+    final authProvider = Provider.of<AuthhProvider>(context);
     return MaterialApp(
       title: 'Ticket App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-     initialRoute: authProvider.isAuthenticated ? '/home' : '/login',
+      initialRoute: authProvider.isAuthenticated ? '/home' : '/login',
       routes: <String, WidgetBuilder>{
         '/': (context) => StreamBuilder(
           stream: FirebaseAuth.instance.authStateChanges(),
@@ -70,36 +70,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-// New screen to handle permission checks
-/*class PermissionCheckScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Permission Test')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () async {
-            await _checkPermission();
-            // Navigate to the appropriate screen based on authentication status
-            final authProvider = Provider.of<AuthhProvider>(context, listen: false);
-            if (authProvider.isAuthenticated) {
-              Navigator.of(context).pushReplacementNamed('/home');
-            } else {
-              Navigator.of(context).pushReplacementNamed('/login');
-            }
-          },
-          child: Text('Check Storage Permission'),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _checkPermission() async {
-    var status = await Permission.storage.request();
-    if (status.isGranted) {
-      print('Storage permission granted');
-    } else {
-      print('Storage permission denied');
-    }
-  }
-}*/
