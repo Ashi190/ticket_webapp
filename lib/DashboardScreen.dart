@@ -138,6 +138,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  // Future<void> _uploadData()async{
+  //   await  FirebaseFirestore.instance.collection('questions').doc('questionnaireOptions').set({
+  //       "questionnaireOptions": [
+  //       'Order ID',
+  //       'Order placed date',
+  //       'Order Stage',
+  //       'Regarding order confirmation',
+  //       'Order booking & tracking link',
+  //       'Regarding order Dispatch',
+  //       'Delivery related Issue',
+  //       'Lead requirement Related',
+  //       'Interact not working',
+  //       'Micro dealership related',
+  //       'Kylas related',
+  //       'Banner & Labels',
+  //       'Website issue',
+  //       'Pricing related',
+  //       'Template related',
+  //       'App task and others',
+  //       ' Order ID is not visible to me in the sales app',
+  //       'Share any other information such as customer name , number, products',
+  //       ' Sales app not working',
+  //       'Call not sync in sales app',
+  //       ' Unable to place orders',
+  //       ' Sales app showing incorrect Data',
+  //       ' Customer not showing in sales app',
+  //       'Invoice',
+  //       'Order confirmation',
+  //       'Invoice correction',
+  //       'Documents if any',
+  //       'Micro dealer statement',
+  //       'Sales sheet not working',
+  //       'Order ID is not visible in sales sheet',
+  //       'Add P number in price confirmation sheet',
+  //       'Price confirmation entries are not visible to support',
+  //       'Price related',
+  //       'Need material or packaging image',
+  //       'Special price confirmation',
+  //       'Order cancellation',
+  //       'Document Related',
+  //       'Lead follow-up',
+  //       'New customer acquisition',
+  //       'others',
+  //     ]}
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -165,6 +211,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 16),
+//             ElevatedButton(onPressed: () {
+// _uploadData();
+//             }, child: Text("UPload")),
             Text(
               "Tickets List",
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),

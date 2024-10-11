@@ -19,6 +19,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;
   final OtpService otpService = OtpService();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
@@ -46,135 +47,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _controller.forward(); // Start the animation
   }
 
-  // Method to send OTP
- /* Future<void> _sendOtp() async {
-    String email = _emailController.text;
-    if (email.isNotEmpty) {
-      final otp = _generateOtp(); // Generate OTP
-      await _sendOtpEmail(email, otp); // Send OTP to the user's email
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP sent to $email')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter a valid email')),
-      );
-    }
-  }*/
-  // Generate a 6-digit OTP
- /* String _generateOtp() {
-    final random = Random();
-    String otp = '';
-    for (int i = 0; i < 6; i++) {
-      otp += random.nextInt(10).toString(); // Generate random number between 0-9
-    }
-    return otp;
-  }*/
-/*  Future<void> _sendOtpEmail(String email, String otp) async {
-    // Using Gmail's SMTP server
-    final smtpServer = gmail('yourEmail@gmail.com', 'yourPassword'); // Use an App Password if 2FA is enabled
 
-    final message = Message()
-      ..from = Address('yourEmail@gmail.com', 'Your App Name') // Sender email
-      ..recipients.add(email)  // Recipient email
-      ..subject = 'Your OTP Code'
-      ..text = 'Your OTP code is: $otp';  // OTP content
-
-    try {
-      final sendReport = await send(message, smtpServer);
-      print('Message sent: ' + sendReport.toString());
-    } on MailerException catch (e) {
-      print('Message not sent. $e');
-      for (var p in e.problems) {
-        print('Problem: ${p.code}: ${p.msg}');
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to send OTP. Please try again.')),
-      );
-    }
-  }*/
-  // Dialog to show for entering email and sending OTP
-/*  void _showForgotPasswordDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Forgot Password'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Enter your email',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                _sendOtp(); // Call the OTP sending function
-                Navigator.of(context).pop(); // Close dialog after sending OTP
-              },
-              child: Text('Send OTP'),
-            ),
-          ],
-        );
-      },
-    );
-  }*/
-// Show Reset Password Dialog after OTP verification
- /* void _showResetPasswordDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: Text('Reset Password'),
-        content: TextFormField(
-          decoration: InputDecoration(
-            labelText: 'Enter your new password',
-          ),
-          controller: _newPasswordController,
-          obscureText: true,
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () async {
-              // Implement your password reset logic here
-              // For example, if you're using Firebase:
-              User? user = FirebaseAuth.instance.currentUser;
-
-              try {
-                await user?.updatePassword(_newPasswordController.text);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Password reset successfully')),
-                );
-                Navigator.pop(context);  // Close reset password dialog
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to reset password. Please try again.')),
-                );
-              }
-            },
-            child: Text('Reset Password'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);  // Close dialog
-            },
-            child: Text('Cancel'),
-          ),
-        ],
-      ),
-    );
-  }*/
   // Method to send password reset email using Firebase
   Future<void> _sendPasswordResetEmail(String email) async {
     String email = _emailController.text;
@@ -315,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       ),
                       child: TextField(
                         controller: _passwordController,
-                        obscureText: true,
+                        obscureText:  !_isPasswordVisible,
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Color(0xFFF7F5F2), // Matching the username field's background
@@ -324,6 +197,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(30.0),
                             borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                              color: Color(0xFF6E7C56), // Greenish tone for the icon
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
                           ),
                         ),
                         onSubmitted: (_) {
