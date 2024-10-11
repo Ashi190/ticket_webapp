@@ -28,7 +28,7 @@ void main() async {
     await Firebase.initializeApp();
   }
  // final authProvider = AuthProvider();
-//  await authProvider.checkLoginStatus(); // Initialize login status
+ // await authProvider.checkLoginStatus();
 
   runApp(
     ChangeNotifierProvider(
