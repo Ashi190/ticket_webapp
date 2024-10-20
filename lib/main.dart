@@ -15,13 +15,13 @@ void main() async {
   if (kIsWeb) {
     await Firebase.initializeApp(
       options: FirebaseOptions(
-        apiKey: "AIzaSyA4KXgcaTo15NnyUQVpEPam2v4BiVJsTTY",
-        authDomain: "ticket-5ced3.firebaseapp.com",
-        projectId: "ticket-5ced3",
-        storageBucket: "ticket-5ced3.appspot.com",
-        messagingSenderId: "103611207453",
-        appId: "1:103611207453:web:920dabe72d60be13115bf4",
-        measurementId: "G-J7JY6M970S",
+        apiKey: "AIzaSyBSTcESUvzcuWZMhWbHCxu91QBRy4buE3w",
+        authDomain: "ticket-4242c.firebaseapp.com",
+        projectId: "ticket-4242c",
+        storageBucket: "ticket-4242c.appspot.com",
+        messagingSenderId: "786774997780",
+        appId: "1:786774997780:web:b002201731d8fd2adc2001",
+       // measurementId: "G-J7JY6M970S",
       ),
     );
   } else {
