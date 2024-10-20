@@ -59,6 +59,13 @@ Enable Firestore for the database.
 Enable Firebase Authentication with the required sign-in method (e.g., Email/Password).
 Copy the Firebase configuration and place it in a .env file in your project.
 
+4. Run the Development Server:
+
+Start the server by running:
+npm start
+
+
+
 Project Structure
 ticket_webapp/
 ├── public/                # Static files
