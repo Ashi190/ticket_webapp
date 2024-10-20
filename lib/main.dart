@@ -21,7 +21,7 @@ void main() async {
         storageBucket: "ticket-4242c.appspot.com",
         messagingSenderId: "786774997780",
         appId: "1:786774997780:web:b002201731d8fd2adc2001",
-       // measurementId: "G-J7JY6M970S",
+        measurementId: "G-J7JY6M970S",
       ),
     );
   } else {
